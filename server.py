@@ -92,4 +92,115 @@ def tool_result(payload: dict, ok: bool, message: str = "") -> dict:
         )
         body = f"**{summary}**\n\n{lines or '_(empty)_'}"
     elif "content" in payload:
-        body = f"**{
+        body = f"**{summary}**\n\n```text\n{payload['content']}\n```\n"
+    else:
+        body = f"**{summary}**"
+
+    return {
+        "content": [{"type": "text", "text": body}],
+        "isError": not ok,
+        "structuredContent": payload,
+    }
+
+# --------------------------------------------------------------------------
+# JSON-RPC Protocol Loop
+# --------------------------------------------------------------------------
+
+def handle_request(req: dict) -> dict | None:
+    """Process a single JSON-RPC request and return the response object, or None if it's a notification."""
+    if req.get("jsonrpc") != "2.0":
+        return None
+        
+    req_id = req.get("id")
+    method = req.get("method")
+    params = req.get("params", {})
+
+    if method == "initialize":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": config.PROTOCOL_VERSION,
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": config.SERVER_NAME, "version": config.SERVER_VERSION}
+            }
+        }
+    
+    if method == "notifications/initialized":
+        return None
+        
+    if method == "tools/list":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {"tools": tools.TOOLS}
+        }
+        
+    if method == "tools/call":
+        name = params.get("name")
+        args = params.get("arguments", {})
+        spec = tools.get(name)
+        
+        if not spec:
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": tool_result({"summary": "Unknown tool"}, False, f"Tool {name!r} does not exist.")
+            }
+            
+        try:
+            payload, ok = spec.handler(args)
+            return {"jsonrpc": "2.0", "id": req_id, "result": tool_result(payload, ok)}
+        except Refused as e:
+            return {"jsonrpc": "2.0", "id": req_id, "result": tool_result({"summary": "Refused"}, False, str(e))}
+        except Exception as e:
+            import traceback
+            log(f"Handler crashed:\n{traceback.format_exc()}")
+            return {"jsonrpc": "2.0", "id": req_id, "result": tool_result({"summary": "Internal Error"}, False, f"{type(e).__name__}: {e}")}
+
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
+
+    if req_id is None:
+        return None
+
+    return {
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": {"code": -32601, "message": f"Method {method!r} not found"}
+    }
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Host CLI MCP Server")
+    parser.add_argument("--confine", metavar="DIR", type=str, help="Refuse to act outside this directory")
+    parser.add_argument("--allow", metavar="CMD,...", type=str, help="Comma-separated executables allowed to run")
+    parser.add_argument("--timeout", metavar="SEC", type=float, help="Kill commands that run longer than this")
+    args = parser.parse_args()
+
+    if args.confine:
+        config.CONFINE_ROOT = Path(args.confine).resolve()
+    if args.allow:
+        config.ALLOWED_EXECUTABLES = tuple(e.strip().lower() for e in args.allow.split(",") if e.strip())
+    if args.timeout:
+        config.DEFAULT_TIMEOUT = args.timeout
+
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+        except json.JSONDecodeError as e:
+            log(f"Invalid JSON: {e}")
+            reply({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}})
+            continue
+        
+        res = handle_request(req)
+        if res is not None:
+            reply(res)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
