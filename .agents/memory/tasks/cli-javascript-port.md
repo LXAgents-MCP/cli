@@ -5,7 +5,7 @@ description: Porting the cli MCP server from Python to JavaScript, laid out like
 
 # Port cli to JavaScript
 
-## 2026-10-09 — in progress
+## 2026-10-09 — done
 
 **Goal.** The host CLI MCP server runs on Node, like the other LXAgents servers, instead of
 Python.
@@ -18,18 +18,18 @@ server. No Python source remains. `npm test` is green.
 is loaded locally by the client and never served over a network. There is no HTTP transport, no
 express and no token code here. `shared-instruction` is the layout reference, not a dependency.
 
-**Status:** in progress.
+**Status:** done. Pull requests #1, #2 and #3, merged in that order by rebase, each branch deleted as it merged.
 
 ## Tasks
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `chore/cli-javascript-plan` | |
-| 2 | Port the server to JavaScript | `feat/javascript-server` | |
-| 3 | Release | `release/{version}` | |
+| 1 | Task record | `chore/cli-javascript-plan` | [#1](https://github.com/LXAgents-MCP/cli/pull/1) |
+| 2 | Port the server to JavaScript | `feat/javascript-server` | [#2](https://github.com/LXAgents-MCP/cli/pull/2) |
+| 3 | Release | `release/2.0.0` | [#3](https://github.com/LXAgents-MCP/cli/pull/3) |
 
-Branches stack: task 1 from `master`, task `k` from task `k-1`. The `PR` column is filled by
-task 3.
+Branches stack: task 1 from `master`, task `k` from task `k-1`. The `PR` column was filled by
+task 3, once the pull requests existed.
 
 ## Decisions the owner approved with the plan
 
@@ -112,5 +112,5 @@ every client changes how it starts the server. `package.json` and the lockfile c
 `.agents/index/logs-index.md` is created with its row. No git tag was created; a tag carries a
 version too and needs its own approval.
 
-The `PR` column and the closing of this record follow once the pull requests exist, in their own
-commit on this branch. Nothing is stacked on this branch, so that commit invalidates nothing.
+The `PR` column was filled and this record closed in the commit that followed, once the pull
+requests existed. Nothing is stacked on this branch, so that commit invalidated nothing.
