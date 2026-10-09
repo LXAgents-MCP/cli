@@ -1,0 +1,34 @@
+{
+  "name": "@lxagents-mcp/cli",
+  "version": "1.2.0",
+  "description": "MCP server that gives an LLM access to the host's command line and file system. Stdio only: it is loaded locally by the client and never served over a network.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test",
+    "inspect": "npx @modelcontextprotocol/inspector node src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LXAgents-MCP/cli.git"
+  },
+  "homepage": "https://github.com/LXAgents-MCP/cli#readme",
+  "bugs": {
+    "url": "https://github.com/LXAgents-MCP/cli/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cli",
+    "lxagents"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.5.4"
+  }
+}
