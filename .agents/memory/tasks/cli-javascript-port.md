@@ -79,7 +79,10 @@ SDK and zod. Tools are still discovered from the directory, as in the Python ver
   child that inherited it could read the client's next message.
 - **Process-tree kill on POSIX** through a process group (`detached` + `kill(-pid)`). A test starts
   a grandchild that holds the pipes and fails if the call waits on it; with the kill reduced to the
-  shell alone that test fails, so it does bite.
+  shell alone that test fails, so it does bite. The check that the grandchild is gone counts a
+  zombie as dead: a killed process stays visible to `kill(pid, 0)` until the host's init collects
+  it, which took up to two seconds in the container the port was written in, and a fixed
+  two-second poll failed once in six full runs because of it.
 - **Argument type errors come from the SDK.** A missing or wrongly typed argument is rejected by the
   SDK's schema validation with its own wording, before the handler runs. The handler keeps its own
   messages for everything past that: empty `path`, missing directory, confinement, allowlist.
