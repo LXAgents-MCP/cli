@@ -1,5 +1,4 @@
 """List what is in a directory on the host."""
-
 from __future__ import annotations
 
 import config
@@ -56,12 +55,11 @@ TOOL = {
     },
 }
 
-
 def handle(args: dict) -> tuple[dict, bool]:
     target = resolve_path(args.get("path"))
     include_hidden = bool(args.get("include_hidden", False))
-
     entries = []
+    
     for child in sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name.lower())):
         if not include_hidden and child.name.startswith("."):
             continue
@@ -72,10 +70,11 @@ def handle(args: dict) -> tuple[dict, bool]:
         except OSError:
             # A dangling link or a permission wall is an entry, not a failure.
             size, kind = 0, "unreadable"
+            
         entries.append({"name": child.name, "type": kind, "size": size})
         if len(entries) >= config.MAX_LIST_ENTRIES:
             break
-
+            
     truncated = len(entries) >= config.MAX_LIST_ENTRIES
     return {
         "summary": f"{len(entries)} entries in {target}"

@@ -1,5 +1,4 @@
 """Read a text file from the host."""
-
 from __future__ import annotations
 
 import config
@@ -49,15 +48,13 @@ TOOL = {
     },
 }
 
-
 def handle(args: dict) -> tuple[dict, bool]:
     target = resolve_path(args.get("path"), must_be_dir=False)
-
     if target.is_dir():
         raise Refused(
             f"`path` {target} is a directory, not a file. Use list_directory on it instead."
         )
-
+        
     limit = config.MAX_FILE_BYTES
     if args.get("max_bytes") is not None:
         try:
@@ -66,18 +63,18 @@ def handle(args: dict) -> tuple[dict, bool]:
             raise Refused(
                 f"`max_bytes` must be an integer, got {args['max_bytes']!r}."
             ) from None
-
+            
     with target.open("rb") as handle_:
         raw = handle_.read(limit + 1)
-
+        
     truncated = len(raw) > limit
     if truncated:
         raw = raw[:limit]
-
+        
     text = decode(raw)
     if text.startswith(chr(0xFEFF)):   # a UTF-8 BOM is an encoding artefact, not content
         text = text[1:]
-
+        
     return {
         "summary": f"Read {len(raw)} bytes from {target}"
         + (" (truncated)." if truncated else "."),

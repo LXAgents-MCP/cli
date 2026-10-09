@@ -75,7 +75,6 @@ TOOL = {
 
 def _kill_tree(pid: int) -> None:
     """Kill a command and everything it spawned.
-
     Necessary on Windows because `shell=True` means cmd.exe starts the real work as a child.
     Killing only the shell leaves that grandchild running, still holding the stdout pipe -
     so the read below would block until the orphan finishes anyway, and a "2 second" timeout
@@ -96,7 +95,6 @@ def _run(command: str, cwd: str, timeout: float) -> tuple[bytes, bytes, int, boo
     # CREATE_NEW_PROCESS_GROUP gives the child its own process group, which is what makes
     # the tree kill above able to reach the whole thing.
     creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-
     process = subprocess.Popen(
         command,
         cwd=cwd,
@@ -105,7 +103,6 @@ def _run(command: str, cwd: str, timeout: float) -> tuple[bytes, bytes, int, boo
         stderr=subprocess.PIPE,
         creationflags=creationflags,
     )
-
     try:
         stdout_raw, stderr_raw = process.communicate(timeout=timeout)
         return stdout_raw or b"", stderr_raw or b"", process.returncode, False
@@ -125,22 +122,23 @@ def _run(command: str, cwd: str, timeout: float) -> tuple[bytes, bytes, int, boo
 def handle(args: dict) -> tuple[dict, bool]:
     cwd = resolve_path(args.get("path"))
     command = args.get("cmd")
+    
     if not isinstance(command, str) or not command.strip():
         raise Refused(
             "`cmd` is required and must be a non-empty string, for example "
             "'python main.py --dry-run'."
         )
-
+        
     check_allowlist(command)
     timeout = clamp_timeout(args.get("timeout"))
-
+    
     started = time.monotonic()
     stdout_raw, stderr_raw, exit_code, timed_out = _run(command, str(cwd), timeout)
     duration_ms = int((time.monotonic() - started) * 1000)
-
+    
     stdout, cut_out = truncate(decode(stdout_raw))
     stderr, cut_err = truncate(decode(stderr_raw))
-
+    
     structured = {
         "exit_code": exit_code,
         "stdout": stdout,
@@ -150,7 +148,7 @@ def handle(args: dict) -> tuple[dict, bool]:
         "timed_out": timed_out,
         "cwd": str(cwd),
     }
-
+    
     if timed_out:
         summary = (
             f"Timed out after {timeout:.0f}s and was killed (exit {exit_code}). "
@@ -160,5 +158,5 @@ def handle(args: dict) -> tuple[dict, bool]:
         summary = f"Exited 0 in {duration_ms}ms."
     else:
         summary = f"Exited {exit_code} in {duration_ms}ms."
-
+        
     return {"summary": summary, **structured}, exit_code == 0 and not timed_out
