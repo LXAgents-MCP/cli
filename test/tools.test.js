@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -162,6 +163,28 @@ test("read_file refuses a directory, a missing file and a bad max_bytes", async 
 
 const NODE = `"${process.execPath}"`;
 
+/**
+ * Whether `pid` is a process that is still running.
+ *
+ * `kill(pid, 0)` also succeeds for a zombie: a process that has been killed and is only waiting
+ * for its parent - here, whatever init the host runs - to collect its exit status. Some
+ * containers collect lazily, for a second or two. A zombie is dead, so on Linux it is read from
+ * `/proc` and not counted.
+ */
+function isRunning(pid) {
+  try {
+    process.kill(pid, 0);
+  } catch {
+    return false;
+  }
+  try {
+    const state = readFileSync(`/proc/${pid}/stat`, "utf8").split(") ")[1]?.[0];
+    return state !== "Z";
+  } catch {
+    return true; // no /proc here, or the process vanished between the two reads
+  }
+}
+
 /** Write a script into `dir` and return the command line that runs it from there. */
 function script(dir, name, source) {
   writeFileSync(join(dir, name), source);
@@ -242,15 +265,12 @@ test("run_command kills the whole tree, so a grandchild holding the pipes cannot
   // The drain backstop is 5 s. Returning sooner means the kill reached the grandchild.
   assert.ok(Date.now() - started < 4000, "the grandchild's pipes must not hold the call open");
 
-  // The grandchild is gone, not merely detached from the pipes.
+  // The grandchild is gone, not merely detached from the pipes. The wait is a ceiling, not a
+  // delay: the loop ends the moment the process is dead.
   let alive = true;
-  for (let i = 0; i < 20 && alive; i += 1) {
-    try {
-      process.kill(grandchild, 0);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch {
-      alive = false;
-    }
+  for (let i = 0; i < 200 && alive; i += 1) {
+    alive = isRunning(grandchild);
+    if (alive) await new Promise((resolve) => setTimeout(resolve, 50));
   }
   assert.equal(alive, false, "the grandchild must not outlive the timeout");
 });
