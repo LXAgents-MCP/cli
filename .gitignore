@@ -1,29 +1,13 @@
 # Agents
 .agents/plans/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Node
+node_modules/
+npm-debug.log*
 
-# Virtual Environments
-venv/
-env/
-.venv/
+# Environment
+.env
+.env.*
 
 # OS / IDE
 .DS_Store
