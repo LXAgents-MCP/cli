@@ -103,3 +103,14 @@ moving from the Python version. `npm install` is now required, which the old REA
 was not.
 
 Left for task 3: version, changelog, the `wiki/logs/` index, the `PR` column and closing this record.
+
+### Task 3 — release/2.0.0
+
+Landed. The version is `2.0.0`, approved by the owner: the runtime changes from Python to Node, so
+every client changes how it starts the server. `package.json` and the lockfile carry it,
+`wiki/logs/2/0/0/CHANGELOG.md` records it with the **Clients must** steps, and
+`.agents/index/logs-index.md` is created with its row. No git tag was created; a tag carries a
+version too and needs its own approval.
+
+The `PR` column and the closing of this record follow once the pull requests exist, in their own
+commit on this branch. Nothing is stacked on this branch, so that commit invalidates nothing.
