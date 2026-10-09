@@ -1,0 +1,23 @@
+---
+name: logs-index
+description: This repository's release history, newest first — what changed and what clients must do.
+---
+
+# Logs Index
+
+**Scope:** `wiki/logs/`
+
+A client picks up a change when it next starts the server, so the **Clients must** column is the
+only notice it gets. It is never left blank.
+
+## Versions
+
+| Version | Date | Summary | Clients must |
+|---|---|---|---|
+| [`2/0/0`](../../wiki/logs/2/0/0/CHANGELOG.md) | 2026-10-09 | **Rewritten in JavaScript.** The same three tools, schemas, flags and limits, on Node 20 or newer instead of Python, with the MCP SDK as the protocol layer. Still stdio only. A timeout now kills the whole process tree on macOS and Linux, a command's stdin is closed, and a refusal no longer carries an empty `structuredContent`. | **Install Node 20+ and run `npm install` once; change `"command": "python"` to `"node"` and the path to `src/index.js`; restart the client.** The flags are unchanged. |
+
+## Maintenance
+
+* Newest version first, one row per version directory.
+* A new version directory is a version claim and needs the owner's approval.
+* Never edit a released log to change history; corrections go in the next version.
