@@ -47,9 +47,10 @@ the limits (30 s default and 600 s ceiling, 30 000 output characters, 500 listin
 200 000 file bytes), the result shape (text block, `structuredContent`, `isError`), and the
 refusal messages.
 
-Different: the timeout kill reaches the whole process tree on POSIX through a process group, not
-only on Windows through `taskkill`; the protocol layer is the SDK's; tool descriptions no longer
-name `cmd.exe` alone.
+Different, by design: the timeout kill reaches the whole process tree on POSIX through a process
+group, not only on Windows through `taskkill`; the protocol layer is the SDK's; tool descriptions
+no longer name `cmd.exe` alone. The full list of differences the port ended up with is in the
+Task 2 entry below.
 
 ## Task entries
 
@@ -58,3 +59,44 @@ name `cmd.exe` alone.
 Landed: this record and its row in `memory-index.md`. The `PR` column is filled by task 3, not
 here, so no later branch needs a rebase. Nothing outside `.agents/` changes in this task. Task 2
 depends on nothing from this entry except the plan above.
+
+### Task 2 — feat/javascript-server
+
+Landed. `node src/index.js` serves `run_command`, `read_file` and `list_directory` over stdio, and
+the Python source is gone. `npm test` runs 57 tests, all passing: the helpers, the registry, each
+tool, the server over an in-memory client, and the real process over a stdio pipe.
+
+Layout follows `shared-instruction`: `src/{index,server,options,config,version,log}.js`, one module
+per tool under `src/tools/` with a discovering registry, `test/*.test.js`. Dependencies are the MCP
+SDK and zod. Tools are still discovered from the directory, as in the Python version.
+
+**Where the port differs from the Python server, all deliberate:**
+
+- **No `structuredContent` on a refusal or a crash.** Python sent `{}`, but a client validates
+  `structuredContent` against the tool's output schema whenever it is present, so a strict client
+  would have rejected every refusal. A failing command still carries its full payload.
+- **stdin is closed for a command, not inherited.** The server's stdin is the protocol channel; a
+  child that inherited it could read the client's next message.
+- **Process-tree kill on POSIX** through a process group (`detached` + `kill(-pid)`). A test starts
+  a grandchild that holds the pipes and fails if the call waits on it; with the kill reduced to the
+  shell alone that test fails, so it does bite.
+- **Argument type errors come from the SDK.** A missing or wrongly typed argument is rejected by the
+  SDK's schema validation with its own wording, before the handler runs. The handler keeps its own
+  messages for everything past that: empty `path`, missing directory, confinement, allowlist.
+- **`read_file` on a missing file is a refusal**, not an internal error.
+- **`list_directory` sets `truncated` only when entries were left out.** Python also set it for a
+  directory of exactly 500.
+- **`--timeout` must be a positive number.** Python ignored `0` and accepted a negative one, which
+  made every command time out at once. The help text now says what the flag does: a default, not a
+  ceiling; the ceiling stays 600 s.
+- **The allowlist reads the first token without `shlex`**, handling a quoted token and both path
+  separators; the name compared is still the file stem, lowercased.
+- **`--help` and usage errors go to stderr**, so nothing in `src/` writes to stdout.
+
+`package.json` is new and is private: this server gives shell access and is cloned, not published.
+Its version is `1.2.0`, carried over from `config.py`, so this task makes no version claim; task 3
+proposes the bump and waits for approval. The README is rewritten, with a short section for anyone
+moving from the Python version. `npm install` is now required, which the old README advertised it
+was not.
+
+Left for task 3: version, changelog, the `wiki/logs/` index, the `PR` column and closing this record.
