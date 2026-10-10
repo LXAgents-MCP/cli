@@ -14,6 +14,7 @@ only notice it gets. It is never left blank.
 
 | Version | Date | Summary | Clients must |
 |---|---|---|---|
+| [`2/1/0`](../../wiki/logs/2/1/0/CHANGELOG.md) | 2026-10-10 | **Two repository tools.** `create_github_repo` and `create_gitlab_repo` create a new repository on GitHub or GitLab.com, private by default, with the token read from `LXAGENTS_MCP_GITHUB_API_KEY` or `LXAGENTS_MCP_GITLAB_API_KEY`. The three host tools are unchanged. The server now makes outbound HTTPS requests when these tools are called, and still has no listener. | **Nothing, unless you want the new tools:** then add the token to the `env` block of the server's entry in the client configuration, and restart the client. |
 | [`2/0/0`](../../wiki/logs/2/0/0/CHANGELOG.md) | 2026-10-09 | **Rewritten in JavaScript.** The same three tools, schemas, flags and limits, on Node 20 or newer instead of Python, with the MCP SDK as the protocol layer. Still stdio only. A timeout now kills the whole process tree on macOS and Linux, a command's stdin is closed, and a refusal no longer carries an empty `structuredContent`. | **Install Node 20+ and run `npm install` once; change `"command": "python"` to `"node"` and the path to `src/index.js`; restart the client.** The flags are unchanged. |
 
 ## Maintenance
