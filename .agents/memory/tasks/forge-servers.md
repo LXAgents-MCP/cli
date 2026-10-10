@@ -30,12 +30,13 @@ The code being removed is `cli` commits `827b25a`, `c7d5bae`, `9babff7` and `5f9
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `chore/forge-servers-plan` | |
-| 2 | Remove the forge tools | `refactor/forge-tools` | |
-| 3 | Release | `release/3.0.0` | |
+| 1 | Task record | `chore/forge-servers-plan` | [#8](https://github.com/LXAgents-MCP/cli/pull/8) |
+| 2 | Remove the forge tools | `refactor/forge-tools` | [#9](https://github.com/LXAgents-MCP/cli/pull/9) |
+| 3 | Release | `release/3.0.0` | [#10](https://github.com/LXAgents-MCP/cli/pull/10) |
 
-Branches stack: task 1 from `master`, task `k` from task `k-1`. The `PR` column is filled by a
-closing commit once the pull requests exist.
+Branches stacked: task 1 from `master`, task `k` from task `k-1`. A rebase merge rewrites commits, so
+each branch was replayed onto the new `master` before its pull request was merged, in order, by rebase.
+The 3 pull requests merged last, after the 14 of `LXAgents-MCP/github` and the 14 of `LXAgents-MCP/gitlab`.
 
 ## Decisions the owner approved with the plan
 
@@ -102,5 +103,17 @@ server's own environment, so a token left in this server's `env` block after the
 any command the model runs, and was in 2.1.0 too. The log tells clients to delete it. Filtering the
 environment of a command would be a change to the host tools, outside this request.
 
-Left for the owner: whether to tag and where to publish either. The `PR` column of the table above is
-filled by a closing commit once the pull requests exist.
+Left for the owner: whether to tag and where to publish either. The `PR` column of the table above was
+filled by a closing commit once the pull requests existed.
+
+### Closing
+
+Landed. The 3 pull requests were merged in order, #8 to #10, each by rebase, after both new servers' chains
+were merged, and `master` carries them as 3 commits on top of the 2.1.0 history. The tree of `master` is
+identical to the tip of `release/3.0.0` as it stood before the first rebase, `src/` and `test/` are identical
+to the repository before the four forge commits, and from a clean install 57 tests pass and the server
+reports `3.0.0`.
+
+The merged branches were not deleted as planned: the git proxy refused to delete a remote branch (HTTP
+403) and was not retried. The 3 branches named in the table are still on the remote and can be deleted by
+the owner; none of them is needed.
