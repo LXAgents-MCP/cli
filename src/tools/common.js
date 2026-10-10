@@ -4,7 +4,7 @@
  */
 import { realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep, win32 } from "node:path";
-import { config, MAX_OUTPUT, MAX_TIMEOUT } from "../config.js";
+import { API_TIMEOUT_MS, config, MAX_OUTPUT, MAX_TIMEOUT } from "../config.js";
 
 /** A request the owner would not want served. Carries a message worth reading. */
 export class Refused extends Error {
@@ -173,4 +173,108 @@ export function truncate(text) {
     return [`${text.slice(0, MAX_OUTPUT)}\n... (truncated)`, true];
   }
   return [text, false];
+}
+
+/**
+ * Read an API token from the environment, at call time.
+ *
+ * Read per call and not at startup, so a server without a token still starts and serves its
+ * other tools. The token comes from the `env` block of the client's configuration for this
+ * server; it is never an argument, so it never appears in a prompt or a transcript.
+ *
+ * @param {string} envName
+ * @returns {string}
+ */
+export function requireToken(envName) {
+  const token = process.env[envName]?.trim();
+  if (!token) {
+    throw new Refused(
+      `${envName} is not set. Add it to the \`env\` block of this server's entry in the ` +
+        "client configuration, then restart the client.",
+    );
+  }
+  return token;
+}
+
+/**
+ * Remove a secret from text that is about to be shown.
+ *
+ * @param {unknown} text
+ * @param {string} secret
+ * @returns {string}
+ */
+export function redact(text, secret) {
+  return secret ? String(text).split(secret).join("***") : String(text);
+}
+
+/**
+ * An optional string argument: trimmed, and `undefined` when absent or blank.
+ *
+ * @param {unknown} value
+ * @param {string} field
+ * @returns {string | undefined}
+ */
+export function optionalText(value, field) {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") throw new Refused(`\`${field}\` must be a string, got ${typeof value}.`);
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
+/**
+ * An optional boolean argument, with the value to use when it is absent.
+ *
+ * @param {unknown} value
+ * @param {string} field
+ * @param {boolean} fallback
+ * @returns {boolean}
+ */
+export function optionalFlag(value, field, fallback) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== "boolean") throw new Refused(`\`${field}\` must be true or false, got ${typeof value}.`);
+  return value;
+}
+
+/**
+ * Call a hosting API and return its status and decoded body.
+ *
+ * Every failure to get an answer - no network, a refused connection, a timeout - becomes a
+ * `Refused` the model can read and act on. A non-2xx answer is not a failure here: the caller
+ * knows what each status means for its service. `token` is only used to scrub error text; the
+ * caller puts the credential in `headers`.
+ *
+ * @param {string} url
+ * @param {{ method?: string, headers?: Record<string, string>, json?: unknown, token?: string }} [options]
+ * @returns {Promise<{ status: number, body: any }>}
+ */
+export async function callApi(url, { method = "GET", headers = {}, json, token = "" } = {}) {
+  const host = new URL(url).host;
+  const init = {
+    method,
+    headers: json === undefined ? headers : { ...headers, "Content-Type": "application/json" },
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+  };
+  if (json !== undefined) init.body = JSON.stringify(json);
+
+  let response;
+  try {
+    response = await fetch(url, init);
+  } catch (error) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      throw new Refused(`${host} did not answer within ${API_TIMEOUT_MS / 1000} seconds. Try again.`);
+    }
+    const reason = redact(error?.cause?.message ?? error?.message ?? error, token);
+    throw new Refused(`Could not reach ${host}: ${reason}. Check the network connection.`);
+  }
+
+  const raw = await response.text();
+  let body = null;
+  if (raw !== "") {
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      body = raw.slice(0, 300);
+    }
+  }
+  return { status: response.status, body };
 }

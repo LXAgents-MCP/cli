@@ -36,3 +36,6 @@ export const MAX_LIST_ENTRIES = 500;
 
 /** Bytes. A file is read to be looked at, not ingested. */
 export const MAX_FILE_BYTES = 200_000;
+
+/** Milliseconds. How long a call to a hosting API may take before the tool gives up on it. */
+export const API_TIMEOUT_MS = 30_000;
