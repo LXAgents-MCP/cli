@@ -1,6 +1,6 @@
 {
   "name": "@lxagents-mcp/cli",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "MCP server that gives an LLM access to the host's command line and file system. Stdio only: it is loaded locally by the client and never served over a network.",
   "private": true,
   "type": "module",

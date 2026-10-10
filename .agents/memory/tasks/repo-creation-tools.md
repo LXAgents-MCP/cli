@@ -111,3 +111,21 @@ things. `npm test`: 105 tests, 104 passing; the one failure is the baseline stdi
 Task 2, unchanged.
 
 Left for task 4: the version, the changelog, the README, and the `PR` column.
+
+### Task 4 — release/2.1.0
+
+Landed. The version is `2.1.0`, approved by the owner (D2): two new tools and nothing that breaks an
+existing client. `package.json` and the lockfile carry it; `wiki/logs/2/1/0/CHANGELOG.md` records it
+with the steps a client must take to use the new tools (create a token, add it to the `env` block,
+restart the client) and a Security section; `.agents/index/logs-index.md` has the new row. No git
+tag was created; a tag carries a version too and needs its own approval.
+
+The README now documents both tools, the two environment variables and the `env` block, and says
+that `--confine` and `--allow` do not bound the repository tools. The 2.0.0 changelog is left as it
+was: its "no token to configure" was true of 2.0.0.
+
+`npm test`: 105 tests, 104 passing; the one failure is the baseline stdio test named in Task 2.
+
+Left: the `PR` column and closing this record. Both wait for the pull requests to exist, which
+wait for the owner's permission to open them. Nothing is stacked on this branch, so filling the
+column afterwards invalidates nothing.
