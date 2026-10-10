@@ -5,7 +5,7 @@ description: Adding create_github_repo and create_gitlab_repo to the cli MCP ser
 
 # Repository creation tools
 
-## 2026-10-10 — in progress
+## 2026-10-10 — done
 
 **Goal.** An LLM connected to the host CLI MCP server can create a new repository on GitHub and
 on GitLab, without the owner pasting a token into a prompt.
@@ -21,16 +21,16 @@ The server stays stdio-only, with no network listener; it now also makes outboun
 and the README and the changelog say so. The token is read at call time, is never logged and is
 never returned. GitLab targets gitlab.com only.
 
-**Status:** in progress.
+**Status:** done. Pull requests #4, #5, #6 and #7, merged in that order by rebase, each branch deleted as it merged.
 
 ## Tasks
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `chore/repo-creation-tools-plan` | |
-| 2 | `create_github_repo` | `feat/github-repo` | |
-| 3 | `create_gitlab_repo` | `feat/gitlab-repo` | |
-| 4 | Release | `release/2.1.0` | |
+| 1 | Task record | `chore/repo-creation-tools-plan` | [#4](https://github.com/LXAgents-MCP/cli/pull/4) |
+| 2 | `create_github_repo` | `feat/github-repo` | [#5](https://github.com/LXAgents-MCP/cli/pull/5) |
+| 3 | `create_gitlab_repo` | `feat/gitlab-repo` | [#6](https://github.com/LXAgents-MCP/cli/pull/6) |
+| 4 | Release | `release/2.1.0` | [#7](https://github.com/LXAgents-MCP/cli/pull/7) |
 
 Branches stack: task 1 from `master`, task `k` from task `k-1`. The `PR` column is filled by
 task 4, once the pull requests exist.
@@ -126,6 +126,5 @@ was: its "no token to configure" was true of 2.0.0.
 
 `npm test`: 105 tests, 104 passing; the one failure is the baseline stdio test named in Task 2.
 
-Left: the `PR` column and closing this record. Both wait for the pull requests to exist, which
-wait for the owner's permission to open them. Nothing is stacked on this branch, so filling the
-column afterwards invalidates nothing.
+The `PR` column was filled and this record closed in the commit that followed, once the pull
+requests existed. Nothing is stacked on this branch, so that commit invalidated nothing.
