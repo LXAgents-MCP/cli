@@ -46,6 +46,10 @@ export function toolResult(payload, ok, message = "") {
     body = `**${summary}**\n\n${lines || "_(empty)_"}`;
   } else if ("content" in fields) {
     body = `**${summary}**\n\n\`\`\`text\n${fields.content}\n\`\`\`\n`;
+  } else if ("html_url" in fields) {
+    // A created repository: the URLs are the answer, so they go in the text the model reads.
+    body = `**${summary}**\n\n- URL: ${fields.html_url}\n- Clone: ${fields.clone_url}`;
+    if (fields.default_branch) body += `\n- Default branch: ${fields.default_branch}`;
   } else {
     body = `**${summary}**`;
   }
