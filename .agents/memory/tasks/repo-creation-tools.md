@@ -53,4 +53,37 @@ Landed: this record and its row in `memory-index.md`. Nothing outside `.agents/`
 task. The `PR` column is filled by task 4, not here, so no later branch needs a rebase.
 
 Baseline before any change: `npm test` ran 56 passing and 1 failing. The failing test is named in
-the Task 2 entry, once identified.
+the Task 2 entry below.
+
+### Task 2 — feat/github-repo
+
+Landed. `create_github_repo` takes `name`, and optionally `org`, `description`, `private` and
+`auto_init`. It posts to `/user/repos`, or to `/orgs/{org}/repos` when `org` is given, with the
+token from `LXAGENTS_MCP_GITHUB_API_KEY`. It creates a private repository with an initial README
+unless told otherwise (D1). It returns `name`, `full_name`, `html_url`, `clone_url`, `visibility`
+and, when GitHub reports one, `default_branch`.
+
+Shared code the GitLab tool reuses, all in `src/tools/common.js`: `requireToken` (reads the
+variable per call, so a server without a token still starts), `redact`, `optionalText`,
+`optionalFlag`, and `callApi` (built-in `fetch`, a 30 s timeout from `API_TIMEOUT_MS` in
+`config.js`, and every network failure turned into a refusal with the token scrubbed). `toolResult`
+in `server.js` gained one branch: a payload with `html_url` renders the URLs in the text block,
+because that text is what the model reads. The output field names (`html_url`, `clone_url`,
+`visibility`, `default_branch`) are the ones the GitLab tool will also use.
+
+Errors name the next step: 401 says the token was rejected, 403 says which permission the token
+needs, 404 on an organization says it may not exist or be visible, 422 carries GitHub's reason
+(usually a name already taken). An argument that is wrong is refused before the token is read or
+anything is sent. No test touches the network: `fetch` is mocked.
+
+The registry tests assumed three tools that all take a `path`; they now list four, check `path`
+only on the three host tools, and allow `create_github_repo` to change things. Task 3 updates the
+same assertions for the GitLab tool.
+
+`npm test`: 85 tests, 84 passing. The one failure is `the process exits by itself when its client
+goes away` in `test/stdio.test.js`. It fails the same way on an untouched copy of `master`, so it
+is the baseline failure and not this task's: the spawned server is still running after its client
+closes, in the environment the work was done in. It is left alone here and reported to the owner.
+
+Left for task 3: the GitLab tool. Left for task 4: the version, the changelog, the README, and the
+`PR` column.
