@@ -8,13 +8,10 @@ import { REGISTRY, TOOLS, discoverTools, get } from "../src/tools/index.js";
 
 const TOOLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "tools");
 
-/** The tools that act on the host's file system and take a `path`; the others call a web API. */
-const HOST_TOOLS = ["list_directory", "read_file", "run_command"];
-
-test("the host tools and the repository tools are discovered, in name order", () => {
+test("the three host tools are discovered, in name order", () => {
   assert.deepEqual(
     TOOLS.map((tool) => tool.name),
-    ["create_github_repo", "create_gitlab_repo", "list_directory", "read_file", "run_command"],
+    ["list_directory", "read_file", "run_command"],
   );
   assert.equal(get("read_file").name, "read_file");
   assert.equal(get("nope"), undefined);
@@ -31,9 +28,10 @@ test("every tool module is a tool and every tool is a module", () => {
   assert.deepEqual([...REGISTRY.keys()].sort(), files);
 });
 
-test("every tool carries a description, an output schema and annotations", () => {
+test("every tool carries a description, a required path, an output schema and annotations", () => {
   for (const { TOOL } of TOOLS) {
     assert.ok(TOOL.description.length > 20, `${TOOL.name} has no useful description`);
+    assert.ok("path" in TOOL.inputSchema, `${TOOL.name} takes no path`);
     assert.ok(Object.keys(TOOL.outputSchema).length > 0, `${TOOL.name} has no output schema`);
     for (const hint of ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"]) {
       assert.equal(typeof TOOL.annotations[hint], "boolean", `${TOOL.name} lacks ${hint}`);
@@ -41,30 +39,9 @@ test("every tool carries a description, an output schema and annotations", () =>
   }
 });
 
-test("every host tool takes a required path", () => {
-  for (const name of HOST_TOOLS) {
-    assert.ok("path" in get(name).TOOL.inputSchema, `${name} takes no path`);
-  }
-});
-
-test("only run_command and the repository tools are allowed to change anything", () => {
+test("only run_command is allowed to change anything", () => {
   const writers = TOOLS.filter(({ TOOL }) => !TOOL.annotations.readOnlyHint).map((t) => t.name);
-  assert.deepEqual(writers, ["create_github_repo", "create_gitlab_repo", "run_command"]);
-});
-
-test("the repository tools create and never destroy, and say they reach the network", () => {
-  for (const name of ["create_github_repo", "create_gitlab_repo"]) {
-    const { annotations } = get(name).TOOL;
-    assert.equal(annotations.destructiveHint, false, `${name} claims to destroy`);
-    assert.equal(annotations.openWorldHint, true, `${name} does not say it reaches the network`);
-  }
-});
-
-test("the repository tools answer in the same shape", () => {
-  assert.deepEqual(
-    Object.keys(get("create_github_repo").TOOL.outputSchema),
-    Object.keys(get("create_gitlab_repo").TOOL.outputSchema),
-  );
+  assert.deepEqual(writers, ["run_command"]);
 });
 
 /** A directory of tool-shaped fixture modules, removed when the test ends. */
