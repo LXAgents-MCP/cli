@@ -87,3 +87,27 @@ closes, in the environment the work was done in. It is left alone here and repor
 
 Left for task 3: the GitLab tool. Left for task 4: the version, the changelog, the README, and the
 `PR` column.
+
+### Task 3 — feat/gitlab-repo
+
+Landed. `create_gitlab_repo` takes `name`, and optionally `group`, `description`, `visibility`
+(`private`, `internal` or `public`) and `initialize_with_readme`. It posts to
+`https://gitlab.com/api/v4/projects` with the token from `LXAGENTS_MCP_GITLAB_API_KEY` in a
+`PRIVATE-TOKEN` header, private and with a README unless told otherwise (D1). GitLab creates a
+project in a group by id, so when `group` is given the tool first looks the group up by its
+URL-encoded full path and uses the id as `namespace_id`; a failed lookup stops there and creates
+nothing. GitLab means gitlab.com only (D3).
+
+It answers in the same shape as the GitHub tool (`name`, `full_name`, `html_url`, `clone_url`,
+`visibility`, optional `default_branch`), so `toolResult` needed no change and a test checks the
+two output schemas stay the same. It reuses the helpers from Task 2. GitLab reports errors as a
+plain string, as an object of field errors, or as an OAuth-style pair, and the tool reads all
+three; a taken name arrives as a 400 with `name has already been taken`. Name and group are
+checked against GitLab's path rules before the token is read, including the rule that a project
+path may not end in `.git` or `.atom`.
+
+The registry, server and stdio tests now list five tools and allow both repository tools to change
+things. `npm test`: 105 tests, 104 passing; the one failure is the baseline stdio test named in
+Task 2, unchanged.
+
+Left for task 4: the version, the changelog, the README, and the `PR` column.
