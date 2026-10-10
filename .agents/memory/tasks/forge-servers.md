@@ -57,3 +57,27 @@ Landed: this record and its row in `memory-index.md`. Nothing outside `.agents/`
 task. The `PR` column is filled by a closing commit, not here, so no later branch needs a rebase.
 
 Baseline before any change: `npm test` ran 105 passing and none failing.
+
+### Task 2 — refactor/forge-tools
+
+Landed. `create_github_repo` and `create_gitlab_repo` are removed, with everything only they used. The
+surface is `run_command`, `read_file` and `list_directory`, and `src/` makes no network request: no
+`fetch` and no `https` remain in it.
+
+What went, by file. The two tool modules; `test/github.test.js`, `test/gitlab.test.js` and
+`test/api.test.js`, which tested them and the shared client; from `src/tools/common.js`, `requireToken`,
+`redact`, `optionalText`, `optionalFlag` and `callApi`, none of which a host tool uses; `API_TIMEOUT_MS`
+from `src/config.js`; the `html_url` branch of `toolResult` in `src/server.js`; and the repository
+assertions in the registry, server and stdio tests, which are back to naming three tools. The README
+loses its repository-tools section, the two environment variables and the sentence about outbound
+requests, and gains a paragraph saying where the tools went (D5).
+
+The source and test files other than the README are the ones the repository had before the forge
+commits `827b25a`, `c7d5bae`, `9babff7` and `5f9b64f`, restored from the commit before them; nothing
+else touched those files in between, which the diff against that commit shows is empty for `src/` and
+`test/`. History is not rewritten, and the 2.1.0 changelog and `repo-creation-tools.md` stay as they
+were (D6).
+
+`npm test`: 57 tests, all passing, the number the suite had before the forge tools were added.
+
+Left for task 3: the version, the changelog with what a client must do, and its row in the logs index.

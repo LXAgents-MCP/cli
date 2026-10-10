@@ -45,13 +45,7 @@ test("over stdio the server lists its tools and answers a call", async (t) => {
   const { tools } = await client.listTools();
   const result = await client.callTool({ name: "list_directory", arguments: { path: dir } });
 
-  assert.deepEqual(tools.map((tool) => tool.name).sort(), [
-    "create_github_repo",
-    "create_gitlab_repo",
-    "list_directory",
-    "read_file",
-    "run_command",
-  ]);
+  assert.deepEqual(tools.map((tool) => tool.name).sort(), ["list_directory", "read_file", "run_command"]);
   assert.equal(result.isError, false);
   assert.deepEqual(result.structuredContent.entries.map((e) => e.name), ["a.txt"]);
 });

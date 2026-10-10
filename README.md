@@ -4,7 +4,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that p
 
 By default, it allows free-form shell execution and unrestricted file access, making it a powerful tool for local development, scripting, and file management directly from your AI assistant.
 
-**Local only, on purpose.** This server speaks MCP over stdio and nothing else: the client starts it as a subprocess on your machine and talks to it through a pipe. There is no HTTP transport and no network listener, and none should be added - a server that runs arbitrary commands must never be reachable from a network. The only network traffic is outbound, and only when you call one of the two repository tools: the server then makes an HTTPS request to GitHub or GitLab.
+**Local only, on purpose.** This server speaks MCP over stdio and nothing else: the client starts it as a subprocess on your machine and talks to it through a pipe. There is no HTTP transport and no network listener, and none should be added - a server that runs arbitrary commands must never be reachable from a network.
 
 ## Features
 
@@ -12,8 +12,8 @@ This server provides the following core tools to the LLM:
 * **`run_command`**: Execute arbitrary shell commands (e.g., `node main.js`, `npm run build`, `git status`) with proper timeout management and process tree cleanup.
 * **`read_file`**: Safely read local text files with automatic encoding handling and size truncation.
 * **`list_directory`**: Explore the local file system with type markers (file/dir) and size tracking.
-* **`create_github_repo`**: Create a new repository on GitHub, in your own account or in an organization. See [Repository tools](#repository-tools).
-* **`create_gitlab_repo`**: Create a new repository on GitLab.com, in your own namespace or in a group. See [Repository tools](#repository-tools).
+
+**Repository tools moved.** `create_github_repo` and `create_gitlab_repo`, added in 2.1.0, are gone as of 3.0.0. GitHub and GitLab each have their own server now, [`lxagents-github`](https://github.com/LXAgents-MCP/github) and [`lxagents-gitlab`](https://github.com/LXAgents-MCP/gitlab), whose `repo_create` takes the same arguments and is one of 45 tools each. This server makes no network request.
 
 *Note: Tools are dynamically discovered from the `src/tools/` directory. You can add a tool by creating a new file there that exports `TOOL` (its name, description and schemas) and `handle(args)`.*
 
@@ -24,8 +24,6 @@ Because this server allows shell execution, it runs exactly what the LLM tells i
 * `--confine <DIR>`: Restricts the AI so it can only read files and run commands within the specified `<DIR>`. Traversal outside this root, including through symlinks, is rejected. This bounds where a command *starts*, not where it can go: a shell command can still reach any path it names.
 * `--allow <executables>`: A comma-separated list of allowed executable commands (e.g., `node,git,npm`). If left empty (the default), any executable is allowed. This narrows what is run; it is not a boundary, because a shell line can build its executable in many ways.
 * `--timeout <seconds>`: The default timeout for a command that does not ask for one (30 seconds if unset). A call may ask for longer, up to a fixed ceiling of 600 seconds.
-
-These flags govern the three host tools. `create_github_repo` and `create_gitlab_repo` read no files and run no commands, so `--confine` and `--allow` do not apply to them; what they can do is bounded by the token you give them.
 
 ## Installation
 
@@ -83,52 +81,12 @@ If you want to sandbox the CLI tools to a specific workspace and allow only spec
 }
 ```
 
-## Repository tools
-
-`create_github_repo` and `create_gitlab_repo` create a new repository and return its URL and clone URL. Each reads its token from an environment variable of the server process, never from an argument, so the token does not appear in a prompt or a transcript.
-
-| Tool | Environment variable | The token needs |
-|---|---|---|
-| `create_github_repo` | `LXAGENTS_MCP_GITHUB_API_KEY` | A classic personal access token with the `repo` scope. A fine-grained token works only where GitHub lets it create repositories; on a 403, use a classic token. |
-| `create_gitlab_repo` | `LXAGENTS_MCP_GITLAB_API_KEY` | A personal access token with the `api` scope, whose owner may create projects where you ask. |
-
-Set them in the `env` block of the server's entry in the client configuration, then restart the client:
-
-```json
-{
-  "mcpServers": {
-    "host-cli": {
-      "command": "node",
-      "args": ["C:/Absolute/Path/To/Your/Project/cli/src/index.js"],
-      "env": {
-        "LXAGENTS_MCP_GITHUB_API_KEY": "<your GitHub token>",
-        "LXAGENTS_MCP_GITLAB_API_KEY": "<your GitLab token>"
-      }
-    }
-  }
-}
-```
-
-You need only the variable for the host you use. A tool whose variable is missing refuses with a message that names it; the server and its other tools are unaffected.
-
-| | `create_github_repo` | `create_gitlab_repo` |
-|---|---|---|
-| Name | `name` (required) | `name` (required) |
-| Where | `org`; omit it for the token owner's account | `group`, the full path such as `team/sub`; omit it for the token owner's namespace |
-| Description | `description` | `description` |
-| Visibility | `private`, default `true` | `visibility`: `private` (default), `internal` or `public` |
-| Initial README | `auto_init`, default `true` | `initialize_with_readme`, default `true` |
-
-A repository is private unless you ask for a public one. GitLab means gitlab.com; a self-hosted instance is not supported. The tools only create: they do not clone, push to, change or delete a repository.
-
 ## Usage
 
 After updating the configuration, **restart Claude Desktop**. You should now see tools like `run_command`, `list_directory`, and `read_file` available. You can simply ask Claude to:
 * *"List the files in my current directory."*
 * *"Run the script located at C:\Projects\script.js"*
 * *"Read my config.json file."*
-* *"Create a private GitHub repository called my-new-repo in the LXAgents-MCP organization."*
-* *"Create a GitLab repository called my-new-repo in my personal namespace."*
 
 ## Development
 
