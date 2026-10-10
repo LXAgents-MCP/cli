@@ -14,7 +14,7 @@ const HOST_TOOLS = ["list_directory", "read_file", "run_command"];
 test("the host tools and the repository tools are discovered, in name order", () => {
   assert.deepEqual(
     TOOLS.map((tool) => tool.name),
-    ["create_github_repo", "list_directory", "read_file", "run_command"],
+    ["create_github_repo", "create_gitlab_repo", "list_directory", "read_file", "run_command"],
   );
   assert.equal(get("read_file").name, "read_file");
   assert.equal(get("nope"), undefined);
@@ -49,13 +49,22 @@ test("every host tool takes a required path", () => {
 
 test("only run_command and the repository tools are allowed to change anything", () => {
   const writers = TOOLS.filter(({ TOOL }) => !TOOL.annotations.readOnlyHint).map((t) => t.name);
-  assert.deepEqual(writers, ["create_github_repo", "run_command"]);
+  assert.deepEqual(writers, ["create_github_repo", "create_gitlab_repo", "run_command"]);
 });
 
 test("the repository tools create and never destroy, and say they reach the network", () => {
-  const { annotations } = get("create_github_repo").TOOL;
-  assert.equal(annotations.destructiveHint, false);
-  assert.equal(annotations.openWorldHint, true);
+  for (const name of ["create_github_repo", "create_gitlab_repo"]) {
+    const { annotations } = get(name).TOOL;
+    assert.equal(annotations.destructiveHint, false, `${name} claims to destroy`);
+    assert.equal(annotations.openWorldHint, true, `${name} does not say it reaches the network`);
+  }
+});
+
+test("the repository tools answer in the same shape", () => {
+  assert.deepEqual(
+    Object.keys(get("create_github_repo").TOOL.outputSchema),
+    Object.keys(get("create_gitlab_repo").TOOL.outputSchema),
+  );
 });
 
 /** A directory of tool-shaped fixture modules, removed when the test ends. */

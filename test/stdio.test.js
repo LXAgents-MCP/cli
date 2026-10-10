@@ -47,6 +47,7 @@ test("over stdio the server lists its tools and answers a call", async (t) => {
 
   assert.deepEqual(tools.map((tool) => tool.name).sort(), [
     "create_github_repo",
+    "create_gitlab_repo",
     "list_directory",
     "read_file",
     "run_command",

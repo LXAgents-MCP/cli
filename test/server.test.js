@@ -49,6 +49,7 @@ test("tools/list advertises the tools with their schemas and hints", async (t) =
 
   assert.deepEqual(Object.keys(byName).sort(), [
     "create_github_repo",
+    "create_gitlab_repo",
     "list_directory",
     "read_file",
     "run_command",
@@ -58,6 +59,7 @@ test("tools/list advertises the tools with their schemas and hints", async (t) =
   assert.deepEqual(byName.read_file.inputSchema.required, ["path"]);
   assert.deepEqual(byName.list_directory.inputSchema.required, ["path"]);
   assert.deepEqual(byName.create_github_repo.inputSchema.required, ["name"]);
+  assert.deepEqual(byName.create_gitlab_repo.inputSchema.required, ["name"]);
 
   assert.equal(byName.read_file.annotations.readOnlyHint, true);
   assert.equal(byName.list_directory.annotations.readOnlyHint, true);
@@ -66,6 +68,9 @@ test("tools/list advertises the tools with their schemas and hints", async (t) =
   assert.equal(byName.create_github_repo.annotations.readOnlyHint, false);
   assert.equal(byName.create_github_repo.annotations.destructiveHint, false);
   assert.equal(byName.create_github_repo.annotations.openWorldHint, true);
+  assert.equal(byName.create_gitlab_repo.annotations.readOnlyHint, false);
+  assert.equal(byName.create_gitlab_repo.annotations.destructiveHint, false);
+  assert.equal(byName.create_gitlab_repo.annotations.openWorldHint, true);
 
   for (const tool of tools) {
     assert.equal(tool.outputSchema.type, "object", `${tool.name} has no output schema`);
@@ -135,6 +140,42 @@ test("create_github_repo over the protocol puts the repository's URLs in the tex
       "- Default branch: main",
   );
   assert.equal(result.structuredContent.html_url, "https://github.com/acme/demo");
+});
+
+test("create_gitlab_repo over the protocol puts the repository's URLs in the text", async (t) => {
+  const client = await connect(t);
+  const saved = process.env.LXAGENTS_MCP_GITLAB_API_KEY;
+  process.env.LXAGENTS_MCP_GITLAB_API_KEY = "glpat-test-token";
+  t.after(() => {
+    if (saved === undefined) delete process.env.LXAGENTS_MCP_GITLAB_API_KEY;
+    else process.env.LXAGENTS_MCP_GITLAB_API_KEY = saved;
+  });
+  t.mock.method(globalThis, "fetch", async () =>
+    new Response(
+      JSON.stringify({
+        name: "demo",
+        path: "demo",
+        path_with_namespace: "acme/demo",
+        web_url: "https://gitlab.com/acme/demo",
+        http_url_to_repo: "https://gitlab.com/acme/demo.git",
+        visibility: "private",
+        default_branch: "main",
+      }),
+      { status: 201 },
+    ),
+  );
+
+  const result = await client.callTool({ name: "create_gitlab_repo", arguments: { name: "demo" } });
+
+  assert.equal(result.isError, false);
+  assert.equal(
+    text(result),
+    "**Created private repository acme/demo on GitLab.**\n\n" +
+      "- URL: https://gitlab.com/acme/demo\n" +
+      "- Clone: https://gitlab.com/acme/demo.git\n" +
+      "- Default branch: main",
+  );
+  assert.equal(result.structuredContent.full_name, "acme/demo");
 });
 
 test("run_command over the protocol renders both streams", async (t) => {
@@ -217,7 +258,7 @@ test("a call with no path, or to no such tool, is an error result and not a cras
 
   // The server is still serving.
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 4);
+  assert.equal(tools.length, 5);
 });
 
 test("a handler that crashes is reported as an internal error and the server carries on", async (t) => {
