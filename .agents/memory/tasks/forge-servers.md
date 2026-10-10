@@ -5,7 +5,7 @@ description: Removing create_github_repo and create_gitlab_repo from the cli MCP
 
 # Forge servers — cli
 
-## 2026-10-10 — in progress
+## 2026-10-10 — complete
 
 **Goal.** The host-shell server no longer carries any forge code. GitHub and GitLab each have a
 dedicated MCP server, `lxagents-github` and `lxagents-gitlab`, and `cli` goes back to what its name
@@ -24,7 +24,7 @@ the release is a major one, `3.0.0`, and its log says what a client must do. The
 set is not adopted here: this repository has no `AGENTS.md`, and adding one is outside this request.
 The code being removed is `cli` commits `827b25a`, `c7d5bae`, `9babff7` and `5f9b64f`.
 
-**Status:** in progress.
+**Status:** complete. Released as `3.0.0`; the pull requests, merged in order by rebase, are in the table.
 
 ## Tasks
 
@@ -81,3 +81,26 @@ were (D6).
 `npm test`: 57 tests, all passing, the number the suite had before the forge tools were added.
 
 Left for task 3: the version, the changelog with what a client must do, and its row in the logs index.
+
+### Task 3 — release/3.0.0
+
+Landed. The version is `3.0.0` in `package.json` and the lockfile — the owner approved it with the plan
+(D2) — and no git tag was made and nothing was published. Only the lockfile's own two entries changed;
+the five other `2.1.0` strings in it are dependencies that happen to share the number.
+
+The release log is `wiki/logs/3/0/0/CHANGELOG.md`: a lead that says it is breaking, the **Clients
+must** steps (call `repo_create` on the new server, move the token, restart), then Removed, Changed and
+Security. Its row in `.agents/index/logs-index.md` leads the table, with the same steps in the last
+column, which is never blank. The 2.1.0 log is left as written (D6).
+
+Checks run on the release branch from a clean install (`rm -rf node_modules && npm ci`): 57 tests pass
+and none fail; the version the server reports, read from `package.json`, is `3.0.0` (this server has no
+`--version` flag); the server lists exactly the three host tools over a real stdio pipe; nothing under `src/` contains `fetch` or `https`.
+
+One consequence the log states and the code does not change: `run_command` starts commands with the
+server's own environment, so a token left in this server's `env` block after the move is readable by
+any command the model runs, and was in 2.1.0 too. The log tells clients to delete it. Filtering the
+environment of a command would be a change to the host tools, outside this request.
+
+Left for the owner: whether to tag and where to publish either. The `PR` column of the table above is
+filled by a closing commit once the pull requests exist.
