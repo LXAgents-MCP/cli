@@ -79,3 +79,10 @@ Checked: no module imports from a folder above its own, and every relative impor
 same usage.
 
 Left for task 3: `README.md` names `src/tools/`, `src/server.js` and `src/config.js`.
+
+### Task 3 — docs/code-structure
+
+Landed. `README.md` names `src/controllers/` where it named `src/tools/`, and its Development section
+gains the folder table, the one place that says what each folder holds and that a folder imports only
+from the ones below it. Released changelogs and earlier task records keep the old paths: they describe
+the tree as it was.
