@@ -15,7 +15,7 @@ This server provides the following core tools to the LLM:
 
 **Repository tools moved.** `create_github_repo` and `create_gitlab_repo`, added in 2.1.0, are gone as of 3.0.0. GitHub and GitLab each have their own server now, [`lxagents-github`](https://github.com/LXAgents-MCP/github) and [`lxagents-gitlab`](https://github.com/LXAgents-MCP/gitlab), whose `repo_create` takes the same arguments and is one of 45 tools each. This server makes no network request.
 
-*Note: Tools are dynamically discovered from the `src/controllers/` directory. You can add a tool by creating a new file there that exports `TOOL` (its name, description and schemas) and `handle(args)`.*
+*Note: Tools are dynamically discovered from the `src/controllers/` directory. You can add a tool by creating a new TypeScript file there that exports `TOOL` (its name, description and schemas) and `handle(args)`, typed by `src/models/tool.ts`.*
 
 ## Security & Confinement
 
@@ -34,10 +34,11 @@ Requires [Node.js](https://nodejs.org/) 20 or newer.
    git clone https://github.com/LXAgents-MCP/cli
    cd cli
    ```
-2. Install the dependencies:
+2. Install the dependencies. This also compiles the TypeScript sources into `dist/`:
    ```bash
    npm install
    ```
+   After pulling a change, run `npm run build` (or `npm install` again) to recompile.
 
 ## Configuration (Claude Desktop)
 
@@ -47,7 +48,7 @@ To use this server with Claude Desktop, add it to your `claude_desktop_config.js
 * **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 * **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Add the following configuration, replacing the absolute path with the actual location of `src/index.js` on your machine:
+Add the following configuration, replacing the absolute path with the actual location of `dist/index.js` on your machine:
 
 ```json
 {
@@ -55,7 +56,7 @@ Add the following configuration, replacing the absolute path with the actual loc
     "host-cli": {
       "command": "node",
       "args": [
-        "C:/Absolute/Path/To/Your/Project/cli/src/index.js"
+        "C:/Absolute/Path/To/Your/Project/cli/dist/index.js"
       ]
     }
   }
@@ -72,7 +73,7 @@ If you want to sandbox the CLI tools to a specific workspace and allow only spec
     "host-cli": {
       "command": "node",
       "args": [
-        "C:/Absolute/Path/To/Your/Project/cli/src/index.js",
+        "C:/Absolute/Path/To/Your/Project/cli/dist/index.js",
         "--confine", "C:/Projects/SafeWorkspace",
         "--allow", "node,npm,git"
       ]
@@ -90,10 +91,17 @@ After updating the configuration, **restart Claude Desktop**. You should now see
 
 ## Development
 
+The server is written in TypeScript (`strict`) under `src/` and compiled to `dist/`, which git ignores.
+
 ```bash
-npm test          # the whole suite
+npm run build     # compile src/ to dist/ with tsc
+npm run typecheck # type-check src/ and test/ without emitting
+npm test          # build, type-check, then the whole suite
+npm start         # run the compiled server over stdio
 npm run inspect   # drive the server by hand with the MCP Inspector
 ```
+
+The tests run from source through `tsx`, except the stdio suite, which starts `dist/index.js` the way a client does.
 
 Nothing in `src/` may write to stdout: on stdio, stdout is the protocol channel. Diagnostics go to stderr.
 
@@ -102,14 +110,18 @@ imports only from the folders below it in this table:
 
 | Folder | Holds |
 |---|---|
-| `src/index.js` | The entry: reads the command line, applies it to `config`, serves stdio. |
-| `src/routes/` | `server.js`: the MCP server and tool dispatch. |
+| `src/index.ts` | The entry: reads the command line, applies it to `config`, serves stdio. |
+| `src/routes/` | `server.ts`: the MCP server and tool dispatch. |
 | `src/controllers/` | One module per tool (`TOOL` and `handle`), and the registry that discovers them. |
-| `src/services/` | `paths.js` (where a tool may act, `--confine`), `allowlist.js` (`--allow`), `process.js` (running a command and killing its tree). |
-| `src/models/` | `args.js`: reading the `timeout` argument. |
-| `src/utils/` | `errors.js`, `log.js`, `render.js` (the text the model reads), `text.js` (decoding and truncation). |
-| `src/config/` | `config.js` (limits and the settings the flags change), `options.js` (parsing the flags), `version.js`. |
+| `src/services/` | `paths.ts` (where a tool may act, `--confine`), `allowlist.ts` (`--allow`), `process.ts` (running a command and killing its tree). |
+| `src/models/` | `args.ts` (reading the `timeout` argument), `tool.ts` (the types every tool module shares). |
+| `src/utils/` | `errors.ts`, `log.ts`, `render.ts` (the text the model reads), `text.ts` (decoding and truncation). |
+| `src/config/` | `config.ts` (limits and the settings the flags change), `options.ts` (parsing the flags), `version.ts`. |
+
+## Moving from 3.x
+
+4.0.0 moved the server to TypeScript. Run `npm install` once so `dist/` is built, then change the path in `args` from `src/index.js` to `dist/index.js` and restart the client. The tools, flags and limits are unchanged.
 
 ## Moving from the Python version
 
-The server was rewritten in JavaScript with the same three tools, schemas, flags and limits. To switch, change `"command": "python"` to `"command": "node"` and point `args` at `src/index.js` instead of `server.py`, then run `npm install` once. Two behaviours differ on purpose: a command's stdin is now closed instead of inherited from the server, and a timeout kills the whole process tree on macOS and Linux as well as on Windows.
+The server was rewritten in JavaScript with the same three tools, schemas, flags and limits. To switch, change `"command": "python"` to `"command": "node"` and point `args` at `dist/index.js` instead of `server.py`, then run `npm install` once. Two behaviours differ on purpose: a command's stdin is now closed instead of inherited from the server, and a timeout kills the whole process tree on macOS and Linux as well as on Windows.

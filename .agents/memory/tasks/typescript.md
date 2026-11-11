@@ -82,3 +82,10 @@ Checked: `npm run build` and `npm run typecheck` report no error. `npm test` run
 failing, the same as before, with the stdio suite against `dist/index.js`. `npm audit`: 0.
 
 Left for task 3: `README.md` still points clients at `src/index.js` and says nothing of the build.
+
+### Task 3 — docs/typescript
+
+Landed. `README.md` points both client examples at `dist/index.js`, says `npm install` also builds,
+lists the `build`, `typecheck`, `test`, `start` and `inspect` scripts, names the `.ts` files in the
+folder table with the new `models/tool.ts`, and gains a "Moving from 3.x" section. Released changelogs
+and earlier task records keep `src/index.js`: they describe the tree as it was.
