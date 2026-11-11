@@ -3,17 +3,17 @@ import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { REGISTRY, TOOLS, discoverTools, get } from "../src/controllers/index.js";
 
-const TOOLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "controllers");
+const TOOLS_DIR: string = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "controllers");
 
 test("the three host tools are discovered, in name order", () => {
   assert.deepEqual(
     TOOLS.map((tool) => tool.name),
     ["list_directory", "read_file", "run_command"],
   );
-  assert.equal(get("read_file").name, "read_file");
+  assert.equal(get("read_file")?.name, "read_file");
   assert.equal(get("nope"), undefined);
 });
 
@@ -21,8 +21,8 @@ test("every tool module is a tool and every tool is a module", () => {
   // Every module in the directory but the registry is a tool, and its file name is its tool
   // name in kebab case. The helpers live in src/services/ and src/utils/.
   const files = readdirSync(TOOLS_DIR)
-    .filter((file) => file.endsWith(".js") && file !== "index.js")
-    .map((file) => file.replace(/\.js$/, "").replaceAll("-", "_"))
+    .filter((file) => file.endsWith(".ts") && file !== "index.ts")
+    .map((file) => file.replace(/\.ts$/, "").replaceAll("-", "_"))
     .sort();
 
   assert.deepEqual([...REGISTRY.keys()].sort(), files);
@@ -33,7 +33,7 @@ test("every tool carries a description, a required path, an output schema and an
     assert.ok(TOOL.description.length > 20, `${TOOL.name} has no useful description`);
     assert.ok("path" in TOOL.inputSchema, `${TOOL.name} takes no path`);
     assert.ok(Object.keys(TOOL.outputSchema).length > 0, `${TOOL.name} has no output schema`);
-    for (const hint of ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"]) {
+    for (const hint of ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"] as const) {
       assert.equal(typeof TOOL.annotations[hint], "boolean", `${TOOL.name} lacks ${hint}`);
     }
   }
@@ -45,14 +45,14 @@ test("only run_command is allowed to change anything", () => {
 });
 
 /** A directory of tool-shaped fixture modules, removed when the test ends. */
-function fixtures(t, files) {
+function fixtures(t: TestContext, files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), "cli-registry-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source);
   return dir;
 }
 
-const tool = (name) =>
+const tool = (name: string): string =>
   `export const TOOL = { name: ${JSON.stringify(name)} };\nexport async function handle() {}\n`;
 
 test("discovery skips a module that is not a tool", async (t) => {

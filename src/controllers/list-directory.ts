@@ -3,9 +3,29 @@ import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import { MAX_LIST_ENTRIES } from "../config/config.js";
+import type { ToolArgs, ToolDefinition, ToolOutcome } from "../models/tool.js";
 import { resolvePath } from "../services/paths.js";
 
-export const TOOL = {
+/** One entry of a listing, as the model sees it. */
+export type ListEntry = {
+  name: string;
+  type: string;
+  size: number;
+};
+
+/** One entry while the listing is being built; `isFile` only orders it. */
+interface FoundEntry extends ListEntry {
+  isFile: boolean;
+}
+
+export type ListDirectoryPayload = {
+  summary: string;
+  path: string;
+  entries: ListEntry[];
+  truncated: boolean;
+};
+
+export const TOOL: ToolDefinition = {
   name: "list_directory",
   description:
     "List what is in a directory on the host, with a type marker per entry. Use this to " +
@@ -42,14 +62,10 @@ export const TOOL = {
   },
 };
 
-/**
- * @param {{ path?: unknown, include_hidden?: unknown }} args
- * @returns {Promise<{ payload: object, ok: boolean }>}
- */
-export async function handle(args) {
+export async function handle(args: ToolArgs): Promise<ToolOutcome<ListDirectoryPayload>> {
   const target = resolvePath(args.path);
   const includeHidden = Boolean(args.include_hidden);
-  const found = [];
+  const found: FoundEntry[] = [];
 
   for (const name of readdirSync(target)) {
     if (!includeHidden && name.startsWith(".")) continue;

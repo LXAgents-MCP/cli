@@ -9,14 +9,11 @@ import { Refused } from "../utils/errors.js";
  * Best effort by nature - a shell line can build its executable any number of ways - which is
  * why the allowlist is a narrowing measure and not a boundary. The name is the file stem of
  * the first token, lowercased, so `"C:\Tools\Git.exe" status` and `git status` both read `git`.
- *
- * @param {string} command
- * @returns {string}
  */
-export function firstToken(command) {
+export function firstToken(command: string): string {
   const text = command.trimStart();
   const quote = text[0];
-  let token;
+  let token: string;
 
   if (quote === '"' || quote === "'") {
     const end = text.indexOf(quote, 1);
@@ -30,8 +27,8 @@ export function firstToken(command) {
   return win32.parse(token).name.toLowerCase();
 }
 
-/** @param {string} command */
-export function checkAllowlist(command) {
+/** Refuse a command whose executable is not allowed, when an allowlist is set. */
+export function checkAllowlist(command: string): void {
   if (config.allowedExecutables.length === 0) return;
 
   const token = firstToken(command);

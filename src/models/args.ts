@@ -1,13 +1,8 @@
 /** Reading tool arguments that are not paths or command lines. */
 import { config, MAX_TIMEOUT } from "../config/config.js";
 
-/**
- * Seconds to wait, clamped to what the server permits.
- *
- * @param {unknown} value
- * @returns {number}
- */
-export function clampTimeout(value) {
+/** Seconds to wait, clamped to what the server permits. */
+export function clampTimeout(value: unknown): number {
   if (value === undefined || value === null) return config.defaultTimeout;
 
   const requested = Number(value);

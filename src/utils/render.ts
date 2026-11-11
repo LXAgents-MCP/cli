@@ -1,15 +1,23 @@
+/** A listing entry, as the text block needs it. */
+interface RenderedEntry {
+  name: string;
+  type: string;
+  size: number;
+}
+
 /**
  * The text block of a tool result: what the model actually reads.
  *
  * It is rendered per result shape: a command gets its two streams, a listing gets the entries,
  * a file gets its content, and a refusal gets the sentence explaining it.
  *
- * @param {string} summary
- * @param {Record<string, any>} fields
- * @param {string} [message] The reason, for a refusal or a handler bug.
- * @returns {string}
+ * @param message The reason, for a refusal or a handler bug.
  */
-export function renderResult(summary, fields, message = "") {
+export function renderResult(
+  summary: string,
+  fields: Record<string, unknown>,
+  message: string = "",
+): string {
   if (message) {
     // A refusal or a handler bug: there is nothing to render but the reason.
     return `**${summary || "Refused"}**\n\n${message}`;
@@ -22,7 +30,7 @@ export function renderResult(summary, fields, message = "") {
     return body;
   }
   if ("entries" in fields) {
-    const lines = fields.entries
+    const lines = (fields.entries as RenderedEntry[])
       .map((e) => `- \`${e.name}\`` + (e.type === "dir" ? "/" : `  (${e.size} bytes)`))
       .join("\n");
     return `**${summary}**\n\n${lines || "_(empty)_"}`;

@@ -6,6 +6,6 @@
  * most common way a stdio MCP server fails. Nothing in `src/` writes to stdout; the SDK's
  * transport is the only thing that does.
  */
-export function log(message) {
+export function log(message: string): void {
   process.stderr.write(`${message}\n`);
 }

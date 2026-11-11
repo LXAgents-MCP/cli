@@ -8,6 +8,12 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "nod
 import { config } from "../config/config.js";
 import { Refused } from "../utils/errors.js";
 
+/** How `resolvePath` treats what it finds. */
+export interface ResolveOptions {
+  /** Refuse a path that is missing or is not a directory. Default true. */
+  mustBeDir?: boolean;
+}
+
 /**
  * Resolve a path the way a non-strict realpath does: follow links through the part that
  * exists and keep the rest literal.
@@ -16,18 +22,18 @@ import { Refused } from "../utils/errors.js";
  * exist" indistinguishable from "outside the root" for a path that is both. Walking up to the
  * nearest existing ancestor keeps the confinement check meaningful either way.
  *
- * @param {string} absolute An absolute path.
- * @returns {string}
+ * @param absolute An absolute path.
  */
-export function resolveReal(absolute) {
-  const rest = [];
+export function resolveReal(absolute: string): string {
+  const rest: string[] = [];
   let current = absolute;
 
   for (;;) {
     try {
       return join(realpathSync(current), ...rest.reverse());
     } catch (error) {
-      if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
       const parent = dirname(current);
       if (parent === current) throw error;
       rest.push(basename(current));
@@ -36,7 +42,7 @@ export function resolveReal(absolute) {
   }
 }
 
-function isInside(root, target) {
+function isInside(root: string, target: string): boolean {
   const rel = relative(root, target);
   return rel === "" || (rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel));
 }
@@ -52,12 +58,8 @@ function isInside(root, target) {
  * When the server was started with --confine <dir>, resolving through real paths is what makes
  * the check real: it collapses `..` and follows symlinks, so neither traversal nor a link out
  * of the tree gets past it.
- *
- * @param {unknown} raw
- * @param {{ mustBeDir?: boolean }} [options]
- * @returns {string}
  */
-export function resolvePath(raw, { mustBeDir = true } = {}) {
+export function resolvePath(raw: unknown, { mustBeDir = true }: ResolveOptions = {}): string {
   if (raw === undefined || raw === null || (typeof raw === "string" && raw.trim() === "")) {
     throw new Refused(
       "`path` is required and must be a non-empty string. There is no default; pass one explicitly.",

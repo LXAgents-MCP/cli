@@ -10,25 +10,25 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { MAX_FILE_BYTES, MAX_LIST_ENTRIES, MAX_OUTPUT, config } from "../src/config/config.js";
 import { Refused } from "../src/utils/errors.js";
 import { handle as listDirectory } from "../src/controllers/list-directory.js";
 import { handle as readFile } from "../src/controllers/read-file.js";
 import { handle as runCommand } from "../src/controllers/run-command.js";
 
-function scratch(t) {
+function scratch(t: TestContext): string {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "cli-test-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
-function resetConfig(t) {
+function resetConfig(t: TestContext): void {
   const saved = { ...config };
   t.after(() => Object.assign(config, saved));
 }
 
-const isRefusal = (pattern) => (e) => e instanceof Refused && pattern.test(e.message);
+const isRefusal = (pattern: RegExp) => (e: unknown): boolean => e instanceof Refused && pattern.test(e.message);
 
 // list_directory
 
@@ -161,7 +161,7 @@ test("read_file refuses a directory, a missing file and a bad max_bytes", async 
 
 // run_command
 
-const NODE = `"${process.execPath}"`;
+const NODE: string = `"${process.execPath}"`;
 
 /**
  * Whether `pid` is a process that is still running.
@@ -171,7 +171,7 @@ const NODE = `"${process.execPath}"`;
  * containers collect lazily, for a second or two. A zombie is dead, so on Linux it is read from
  * `/proc` and not counted.
  */
-function isRunning(pid) {
+function isRunning(pid: number): boolean {
   try {
     process.kill(pid, 0);
   } catch {
@@ -186,7 +186,7 @@ function isRunning(pid) {
 }
 
 /** Write a script into `dir` and return the command line that runs it from there. */
-function script(dir, name, source) {
+function script(dir: string, name: string, source: string): string {
   writeFileSync(join(dir, name), source);
   return `${NODE} ${name}`;
 }

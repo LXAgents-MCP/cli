@@ -1,12 +1,12 @@
 /**
- * Command-line options, parsed without side effects. `src/index.js` applies them to `config`, so
+ * Command-line options, parsed without side effects. `src/index.ts` applies them to `config`, so
  * this module reads nothing and depends on nothing above it.
  */
 import { parseArgs } from "node:util";
 
 export const USAGE = `Host CLI MCP Server
 
-Usage: node src/index.js [options]
+Usage: node dist/index.js [options]
 
 Options:
   --confine DIR     Refuse to act outside this directory
@@ -17,18 +17,33 @@ Options:
 
 /** A bad command line. The message is for the person who typed it. */
 export class UsageError extends Error {
-  constructor(message) {
+  constructor(message: string) {
     super(message);
     this.name = "UsageError";
   }
 }
 
+/** What the command line asked for. A flag that was not passed is absent. */
+export interface Options {
+  confine?: string;
+  allow?: string[];
+  timeout?: number;
+  help: boolean;
+}
+
+/** The raw values `parseArgs` returns for the options below. */
+interface RawValues {
+  confine?: string;
+  allow?: string;
+  timeout?: string;
+  help?: boolean;
+}
+
 /**
- * @param {string[]} argv Arguments after the script name.
- * @returns {{ confine?: string, allow?: string[], timeout?: number, help: boolean }}
+ * @param argv Arguments after the script name.
  */
-export function parseOptions(argv) {
-  let values;
+export function parseOptions(argv: string[]): Options {
+  let values: RawValues;
   try {
     ({ values } = parseArgs({
       args: argv,
@@ -42,10 +57,10 @@ export function parseOptions(argv) {
       allowPositionals: false,
     }));
   } catch (error) {
-    throw new UsageError(error.message);
+    throw new UsageError((error as Error).message);
   }
 
-  const options = { help: Boolean(values.help) };
+  const options: Options = { help: Boolean(values.help) };
 
   if (values.confine) options.confine = values.confine;
 

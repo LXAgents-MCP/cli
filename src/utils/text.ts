@@ -7,11 +7,8 @@ import { MAX_OUTPUT } from "../config/config.js";
  * The byte order mark is kept in the string (`ignoreBOM`) so a caller that cares can strip it
  * explicitly, instead of the decoder doing it for UTF-8 only and leaving it as mojibake for the
  * fallback.
- *
- * @param {Uint8Array} payload
- * @returns {string}
  */
-export function decode(payload) {
+export function decode(payload: Uint8Array): string {
   try {
     return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(payload);
   } catch {
@@ -19,11 +16,8 @@ export function decode(payload) {
   }
 }
 
-/**
- * @param {string} text
- * @returns {[string, boolean]} The text, cut to the output ceiling, and whether it was cut.
- */
-export function truncate(text) {
+/** The text, cut to the output ceiling, and whether it was cut. */
+export function truncate(text: string): [string, boolean] {
   if (text.length > MAX_OUTPUT) {
     return [`${text.slice(0, MAX_OUTPUT)}\n... (truncated)`, true];
   }

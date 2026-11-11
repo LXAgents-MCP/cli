@@ -26,13 +26,13 @@
 import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from "./config/config.js";
-import { USAGE, UsageError, parseOptions } from "./config/options.js";
+import { USAGE, UsageError, parseOptions, type Options } from "./config/options.js";
 import { SERVER_NAME, VERSION } from "./config/version.js";
 import { createServer } from "./routes/server.js";
 import { resolveReal } from "./services/paths.js";
 import { log } from "./utils/log.js";
 
-let options;
+let options: Options;
 try {
   options = parseOptions(process.argv.slice(2));
 } catch (error) {
