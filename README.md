@@ -15,7 +15,7 @@ This server provides the following core tools to the LLM:
 
 **Repository tools moved.** `create_github_repo` and `create_gitlab_repo`, added in 2.1.0, are gone as of 3.0.0. GitHub and GitLab each have their own server now, [`lxagents-github`](https://github.com/LXAgents-MCP/github) and [`lxagents-gitlab`](https://github.com/LXAgents-MCP/gitlab), whose `repo_create` takes the same arguments and is one of 45 tools each. This server makes no network request.
 
-*Note: Tools are dynamically discovered from the `src/tools/` directory. You can add a tool by creating a new file there that exports `TOOL` (its name, description and schemas) and `handle(args)`.*
+*Note: Tools are dynamically discovered from the `src/controllers/` directory. You can add a tool by creating a new file there that exports `TOOL` (its name, description and schemas) and `handle(args)`.*
 
 ## Security & Confinement
 
@@ -96,6 +96,19 @@ npm run inspect   # drive the server by hand with the MCP Inspector
 ```
 
 Nothing in `src/` may write to stdout: on stdio, stdout is the protocol channel. Diagnostics go to stderr.
+
+`src/` keeps one job per file, in the same folders as `lxagents-github` and `lxagents-gitlab`. A folder
+imports only from the folders below it in this table:
+
+| Folder | Holds |
+|---|---|
+| `src/index.js` | The entry: reads the command line, applies it to `config`, serves stdio. |
+| `src/routes/` | `server.js`: the MCP server and tool dispatch. |
+| `src/controllers/` | One module per tool (`TOOL` and `handle`), and the registry that discovers them. |
+| `src/services/` | `paths.js` (where a tool may act, `--confine`), `allowlist.js` (`--allow`), `process.js` (running a command and killing its tree). |
+| `src/models/` | `args.js`: reading the `timeout` argument. |
+| `src/utils/` | `errors.js`, `log.js`, `render.js` (the text the model reads), `text.js` (decoding and truncation). |
+| `src/config/` | `config.js` (limits and the settings the flags change), `options.js` (parsing the flags), `version.js`. |
 
 ## Moving from the Python version
 
