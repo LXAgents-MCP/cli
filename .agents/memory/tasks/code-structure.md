@@ -5,7 +5,7 @@ description: Giving the cli server the same src layout as github and gitlab, one
 
 # Code structure — cli
 
-## 2026-11-11 — in progress
+## 2026-11-11 — complete
 
 **Goal.** The owner asked for every repository to be checked against `CODE_PERF.md`: one job per
 file, no tangled dependencies, a directory layout that scales, and no redundant logic. `cli` has never
@@ -31,6 +31,8 @@ and `src/server.js` renders every result shape inline. Its layout also differs f
 Imports only flow downward: routes, controllers, services, models, utils, config. `npm test` passes
 with the same 57 tests, and `node src/index.js` serves the same three tools.
 
+**Status:** complete. Released as `3.0.1`; the pull requests, merged in order by rebase, are in the table.
+
 **Detail.** A move and a split, not a rewrite: no tool, argument, description, flag, limit or message
 changes. Files move with `git mv` and no shim is left at an old path. The owner is away and asked for
 the recommended option wherever a question comes up; the choices are below. Baseline: 57 passing.
@@ -39,10 +41,10 @@ the recommended option wherever a question comes up; the choices are below. Base
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/code-structure` | |
-| 2 | Split src by role | `refactor/code-structure` | |
-| 3 | Corrected documentation | `docs/code-structure` | |
-| 4 | Release | `release/3.0.1` | |
+| 1 | Task record | `plan/code-structure` | [#12](https://github.com/LXAgents-MCP/cli/pull/12) |
+| 2 | Split src by role | `refactor/code-structure` | [#13](https://github.com/LXAgents-MCP/cli/pull/13) |
+| 3 | Corrected documentation | `docs/code-structure` | [#14](https://github.com/LXAgents-MCP/cli/pull/14) |
+| 4 | Release | `release/3.0.1` | [#15](https://github.com/LXAgents-MCP/cli/pull/15) |
 
 Branches stacked: task 1 from `master`, task `k` from task `k-1`. The same names are used in `github`,
 `gitlab` and `template`; no chain depends on another.
@@ -86,3 +88,9 @@ Landed. `README.md` names `src/controllers/` where it named `src/tools/`, and it
 gains the folder table, the one place that says what each folder holds and that a folder imports only
 from the ones below it. Released changelogs and earlier task records keep the old paths: they describe
 the tree as it was.
+
+### Task 4 — release/3.0.1
+
+Landed. `package.json` and the lockfile are at `3.0.1`, the release log is `wiki/logs/3/0/1/CHANGELOG.md`
+and the logs index leads with its row. This commit fills the `PR` column and closes the record. No tag
+is made and nothing is published.
