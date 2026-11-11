@@ -5,7 +5,7 @@ description: Migrating the cli server from JavaScript to strict TypeScript compi
 
 # TypeScript migration — cli
 
-## 2026-11-11 — in progress
+## 2026-11-11 — complete
 
 **Goal.** The owner asked for every Node.js repository to move to TypeScript, so the code is
 type-checked under `strict` and the four servers share one toolchain. `cli` is a Node.js ESM
@@ -24,6 +24,8 @@ repository (`"type": "module"`, Node 20+, the MCP SDK and `zod`), so it is in sc
 * `npm run build` compiles with no error, and `npm test` passes the same 57 tests, including the
   stdio suite run against the compiled server.
 
+**Status:** complete. Released as `4.0.0`; the pull requests, merged in order by rebase, are in the table.
+
 **Detail.** A change of language, not of behaviour: no tool, argument, description, flag, limit or
 message changes, except the usage line, which names the new entry `dist/index.js`. The server stays
 stdio only; it has no HTTP transport, so the request's HTTP check does not apply here. The owner is
@@ -34,10 +36,10 @@ Baseline before the work: 57 passing, 5 audit findings (2 high, 3 moderate).
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/typescript` | |
-| 2 | Convert to TypeScript | `refactor/typescript` | |
-| 3 | Corrected documentation | `docs/typescript` | |
-| 4 | Release | `release/4.0.0` | |
+| 1 | Task record | `plan/typescript` | [#16](https://github.com/LXAgents-MCP/cli/pull/16) |
+| 2 | Convert to TypeScript | `refactor/typescript` | [#17](https://github.com/LXAgents-MCP/cli/pull/17) |
+| 3 | Corrected documentation | `docs/typescript` | [#18](https://github.com/LXAgents-MCP/cli/pull/18) |
+| 4 | Release | `release/4.0.0` | [#19](https://github.com/LXAgents-MCP/cli/pull/19) |
 
 Branches stacked: task 1 from `master`, task `k` from task `k-1`. No chain in another repository
 depends on this one.
@@ -89,3 +91,9 @@ Landed. `README.md` points both client examples at `dist/index.js`, says `npm in
 lists the `build`, `typecheck`, `test`, `start` and `inspect` scripts, names the `.ts` files in the
 folder table with the new `models/tool.ts`, and gains a "Moving from 3.x" section. Released changelogs
 and earlier task records keep `src/index.js`: they describe the tree as it was.
+
+### Task 4 — release/4.0.0
+
+Landed. `package.json` and the lockfile are at `4.0.0`, the release log is `wiki/logs/4/0/0/CHANGELOG.md`
+and the logs index leads with its row. This commit fills the `PR` column and closes the record. No tag
+is made and nothing is published.
