@@ -11,11 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { MAX_FILE_BYTES, MAX_LIST_ENTRIES, MAX_OUTPUT, config } from "../src/config.js";
-import { Refused } from "../src/tools/common.js";
-import { handle as listDirectory } from "../src/tools/list-directory.js";
-import { handle as readFile } from "../src/tools/read-file.js";
-import { handle as runCommand } from "../src/tools/run-command.js";
+import { MAX_FILE_BYTES, MAX_LIST_ENTRIES, MAX_OUTPUT, config } from "../src/config/config.js";
+import { Refused } from "../src/utils/errors.js";
+import { handle as listDirectory } from "../src/controllers/list-directory.js";
+import { handle as readFile } from "../src/controllers/read-file.js";
+import { handle as runCommand } from "../src/controllers/run-command.js";
 
 function scratch(t) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "cli-test-")));

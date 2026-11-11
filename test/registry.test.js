@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { REGISTRY, TOOLS, discoverTools, get } from "../src/tools/index.js";
+import { REGISTRY, TOOLS, discoverTools, get } from "../src/controllers/index.js";
 
-const TOOLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "tools");
+const TOOLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "controllers");
 
 test("the three host tools are discovered, in name order", () => {
   assert.deepEqual(
@@ -18,10 +18,10 @@ test("the three host tools are discovered, in name order", () => {
 });
 
 test("every tool module is a tool and every tool is a module", () => {
-  // The helpers live beside the tools and are not callable. Anything else in the directory is
-  // a tool, and its file name is its tool name in kebab case.
+  // Every module in the directory but the registry is a tool, and its file name is its tool
+  // name in kebab case. The helpers live in src/services/ and src/utils/.
   const files = readdirSync(TOOLS_DIR)
-    .filter((file) => file.endsWith(".js") && !["index.js", "common.js"].includes(file))
+    .filter((file) => file.endsWith(".js") && file !== "index.js")
     .map((file) => file.replace(/\.js$/, "").replaceAll("-", "_"))
     .sort();
 

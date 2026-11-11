@@ -62,3 +62,20 @@ Branches stacked: task 1 from `master`, task `k` from task `k-1`. The same names
 
 Landed: this record and its row in `memory-index.md`. Nothing outside `.agents/` changes. The `PR`
 column is filled by the release task.
+
+### Task 2 — refactor/code-structure
+
+Landed. Every file moved with `git mv`: `src/server.js` to `src/routes/server.js`, `src/tools/` to
+`src/controllers/`, `config.js`, `options.js` and `version.js` to `src/config/`, `log.js` to `src/utils/`.
+`tools/common.js` was split by job into `services/paths.js`, `services/allowlist.js`, `models/args.js`
+(`clampTimeout`), `utils/errors.js` (`Refused`) and `utils/text.js` (`decode`, `truncate`).
+`run-command.js` keeps its tool contract and hands spawning and tree killing to `services/process.js`.
+`toolResult` keeps the result envelope and the per-shape text moved to `utils/render.js`
+(`renderResult`). `applyOptions` became three lines in `src/index.js` (D2). `ROOT` in
+`config/version.js` is two levels up. No code inside a function changed.
+
+Checked: no module imports from a folder above its own, and every relative import resolves.
+`npm test` runs 57 passing and none failing, the same as before. `node src/index.js --help` prints the
+same usage.
+
+Left for task 3: `README.md` names `src/tools/`, `src/server.js` and `src/config.js`.

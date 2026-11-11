@@ -2,8 +2,10 @@
 import { open } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { z } from "zod";
-import { MAX_FILE_BYTES } from "../config.js";
-import { Refused, decode, resolvePath } from "./common.js";
+import { MAX_FILE_BYTES } from "../config/config.js";
+import { resolvePath } from "../services/paths.js";
+import { Refused } from "../utils/errors.js";
+import { decode } from "../utils/text.js";
 
 export const TOOL = {
   name: "read_file",
