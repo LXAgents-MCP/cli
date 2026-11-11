@@ -23,11 +23,14 @@
  *
  * Nothing here may write to stdout: on stdio, stdout is the JSON-RPC channel.
  */
+import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { log } from "./log.js";
-import { USAGE, UsageError, applyOptions, parseOptions } from "./options.js";
-import { createServer } from "./server.js";
-import { SERVER_NAME, VERSION } from "./version.js";
+import { config } from "./config/config.js";
+import { USAGE, UsageError, parseOptions } from "./config/options.js";
+import { SERVER_NAME, VERSION } from "./config/version.js";
+import { createServer } from "./routes/server.js";
+import { resolveReal } from "./services/paths.js";
+import { log } from "./utils/log.js";
 
 let options;
 try {
@@ -43,7 +46,11 @@ if (options.help) {
   process.exit(0);
 }
 
-applyOptions(options);
+// The one place the command line reaches `config`. The handlers read `config` late, so they see
+// these values and not the defaults.
+if (options.confine) config.confineRoot = resolveReal(resolve(options.confine));
+if (options.allow) config.allowedExecutables = options.allow;
+if (options.timeout) config.defaultTimeout = options.timeout;
 
 const server = createServer();
 await server.connect(new StdioServerTransport());

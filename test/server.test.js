@@ -5,10 +5,10 @@ import { join } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { config } from "../src/config.js";
-import { createServer, toolResult } from "../src/server.js";
-import { get } from "../src/tools/index.js";
-import { SERVER_NAME, VERSION } from "../src/version.js";
+import { config } from "../src/config/config.js";
+import { createServer, toolResult } from "../src/routes/server.js";
+import { get } from "../src/controllers/index.js";
+import { SERVER_NAME, VERSION } from "../src/config/version.js";
 
 /** A client connected to a fresh server over an in-memory pipe. */
 async function connect(t) {

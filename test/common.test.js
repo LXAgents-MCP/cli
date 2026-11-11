@@ -3,16 +3,12 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { MAX_OUTPUT, MAX_TIMEOUT, config } from "../src/config.js";
-import {
-  Refused,
-  checkAllowlist,
-  clampTimeout,
-  decode,
-  firstToken,
-  resolvePath,
-  truncate,
-} from "../src/tools/common.js";
+import { MAX_OUTPUT, MAX_TIMEOUT, config } from "../src/config/config.js";
+import { clampTimeout } from "../src/models/args.js";
+import { checkAllowlist, firstToken } from "../src/services/allowlist.js";
+import { resolvePath } from "../src/services/paths.js";
+import { Refused } from "../src/utils/errors.js";
+import { decode, truncate } from "../src/utils/text.js";
 
 /** A real, symlink-free scratch directory that is removed when the test ends. */
 function scratch(t) {

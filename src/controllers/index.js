@@ -3,9 +3,9 @@
  *
  * Adding a tool is a new file in this directory that exports `TOOL` (name, description and
  * schemas) and `handle(args)`, resolving to `{ payload, ok }`. Nothing needs editing elsewhere -
- * `src/server.js` never names a tool, so the protocol layer cannot grow a per-tool special
- * case. A module that does not export both is skipped: `common.js` lives here too, and helpers
- * have no business being callable as a tool.
+ * `src/routes/server.js` never names a tool, so the protocol layer cannot grow a per-tool special
+ * case. A module that does not export both is skipped, so a helper dropped here is never callable
+ * as a tool - but helpers belong in `src/services/` or `src/utils/`, not here.
  */
 import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";

@@ -1,8 +1,8 @@
-/** Command-line options: parsed without side effects, then applied to `config`. */
-import { resolve } from "node:path";
+/**
+ * Command-line options, parsed without side effects. `src/index.js` applies them to `config`, so
+ * this module reads nothing and depends on nothing above it.
+ */
 import { parseArgs } from "node:util";
-import { config } from "./config.js";
-import { resolveReal } from "./tools/common.js";
 
 export const USAGE = `Host CLI MCP Server
 
@@ -65,11 +65,4 @@ export function parseOptions(argv) {
   }
 
   return options;
-}
-
-/** @param {ReturnType<typeof parseOptions>} options */
-export function applyOptions(options) {
-  if (options.confine) config.confineRoot = resolveReal(resolve(options.confine));
-  if (options.allow) config.allowedExecutables = options.allow;
-  if (options.timeout) config.defaultTimeout = options.timeout;
 }

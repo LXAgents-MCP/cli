@@ -2,13 +2,14 @@
  * The MCP server: protocol and tool dispatch only.
  *
  * A fresh instance is created per connection because McpServer holds per-connection state.
- * The tool surface is not written here - it is whatever `src/tools/` discovers.
+ * The tool surface is not written here - it is whatever `src/controllers/` discovers.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { log } from "./log.js";
-import { Refused } from "./tools/common.js";
-import { TOOLS } from "./tools/index.js";
-import { SERVER_NAME, VERSION } from "./version.js";
+import { TOOLS } from "../controllers/index.js";
+import { SERVER_NAME, VERSION } from "../config/version.js";
+import { Refused } from "../utils/errors.js";
+import { log } from "../utils/log.js";
+import { renderResult } from "../utils/render.js";
 
 /**
  * Shape a handler's payload into a `tools/call` result.
@@ -16,12 +17,11 @@ import { SERVER_NAME, VERSION } from "./version.js";
  * `isError` is how a client learns a command failed. It carries the message, so a failure
  * arrives as readable data rather than as an opaque protocol error.
  *
- * The text block is what the model actually reads, so it is rendered per tool shape: a command
- * gets its two streams, a listing gets the entries, a refusal gets the sentence explaining it.
- * Everything also rides along in `structuredContent` for a client that would rather read it
- * programmatically - except on a refusal or a crash, which have no fields to report. A client
- * validates `structuredContent` against the tool's output schema whenever it is present, so an
- * empty object there would be rejected for the fields it lacks.
+ * The text block is what the model actually reads (see `src/utils/render.js`). Everything also
+ * rides along in `structuredContent` for a client that would rather read it programmatically -
+ * except on a refusal or a crash, which have no fields to report. A client validates
+ * `structuredContent` against the tool's output schema whenever it is present, so an empty
+ * object there would be rejected for the fields it lacks.
  *
  * @param {Record<string, unknown>} payload
  * @param {boolean} ok
@@ -29,26 +29,7 @@ import { SERVER_NAME, VERSION } from "./version.js";
  */
 export function toolResult(payload, ok, message = "") {
   const { summary = "", ...fields } = payload;
-  let body;
-
-  if (message) {
-    // A refusal or a handler bug: there is nothing to render but the reason.
-    body = `**${summary || "Refused"}**\n\n${message}`;
-  } else if ("stdout" in fields) {
-    body = `**${summary}**\n\n`;
-    if (fields.stdout) body += `\`\`\`\n${fields.stdout}\n\`\`\`\n`;
-    if (fields.stderr) body += `\n**stderr**\n\n\`\`\`\n${fields.stderr}\n\`\`\`\n`;
-    if (!fields.stdout && !fields.stderr) body += "_(no output)_\n";
-  } else if ("entries" in fields) {
-    const lines = fields.entries
-      .map((e) => `- \`${e.name}\`` + (e.type === "dir" ? "/" : `  (${e.size} bytes)`))
-      .join("\n");
-    body = `**${summary}**\n\n${lines || "_(empty)_"}`;
-  } else if ("content" in fields) {
-    body = `**${summary}**\n\n\`\`\`text\n${fields.content}\n\`\`\`\n`;
-  } else {
-    body = `**${summary}**`;
-  }
+  const body = renderResult(summary, fields, message);
 
   const result = { content: [{ type: "text", text: body }], isError: !ok };
   if (!message) result.structuredContent = fields;
@@ -58,7 +39,7 @@ export function toolResult(payload, ok, message = "") {
 /**
  * Run one tool call, turning every failure into a result the client can read.
  *
- * @param {import("./tools/index.js").ToolSpec} spec
+ * @param {import("../controllers/index.js").ToolSpec} spec
  * @param {object} args
  */
 async function callTool(spec, args) {

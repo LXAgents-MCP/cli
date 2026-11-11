@@ -2,8 +2,8 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
-import { MAX_LIST_ENTRIES } from "../config.js";
-import { resolvePath } from "./common.js";
+import { MAX_LIST_ENTRIES } from "../config/config.js";
+import { resolvePath } from "../services/paths.js";
 
 export const TOOL = {
   name: "list_directory",
