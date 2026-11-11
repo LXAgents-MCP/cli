@@ -1,12 +1,19 @@
 /**
  * Every knob this server has, in one place.
  *
- * Read the mutable ones as `config.name`, never destructured. `src/index.js` overwrites some
+ * Read the mutable ones as `config.name`, never destructured. `src/index.ts` overwrites some
  * of them from the command line, and a destructured copy would bind the value at import time
  * and silently ignore --confine, --allow and --timeout. Property access is late-bound, so the
  * handlers see the values actually in force.
  */
-export const config = {
+/** The settings the command line may change. */
+export interface Config {
+  confineRoot: string | null;
+  allowedExecutables: string[];
+  defaultTimeout: number;
+}
+
+export const config: Config = {
   /**
    * Optional confinement boundary, as an absolute resolved path. `null` means nothing is
    * confined, which is the default: `cmd` is a free-form shell string, so bounding `path`
@@ -26,13 +33,13 @@ export const config = {
 };
 
 /** The ceiling a model cannot argue its way past, in seconds. */
-export const MAX_TIMEOUT = 600;
+export const MAX_TIMEOUT: number = 600;
 
 /** Characters. Past this the model reasons about a partial result as though it were complete. */
-export const MAX_OUTPUT = 30000;
+export const MAX_OUTPUT: number = 30000;
 
 /** A listing is for orientation, not for transfer. */
-export const MAX_LIST_ENTRIES = 500;
+export const MAX_LIST_ENTRIES: number = 500;
 
 /** Bytes. A file is read to be looked at, not ingested. */
-export const MAX_FILE_BYTES = 200_000;
+export const MAX_FILE_BYTES: number = 200_000;

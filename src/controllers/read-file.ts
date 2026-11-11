@@ -3,11 +3,20 @@ import { open } from "node:fs/promises";
 import { statSync } from "node:fs";
 import { z } from "zod";
 import { MAX_FILE_BYTES } from "../config/config.js";
+import type { ToolArgs, ToolDefinition, ToolOutcome } from "../models/tool.js";
 import { resolvePath } from "../services/paths.js";
 import { Refused } from "../utils/errors.js";
 import { decode } from "../utils/text.js";
 
-export const TOOL = {
+export type ReadFilePayload = {
+  summary: string;
+  path: string;
+  content: string;
+  bytes_read: number;
+  truncated: boolean;
+};
+
+export const TOOL: ToolDefinition = {
   name: "read_file",
   description:
     "Read a text file from the host and return its contents. Use this instead of shelling " +
@@ -40,11 +49,7 @@ export const TOOL = {
   },
 };
 
-/**
- * @param {{ path?: unknown, max_bytes?: unknown }} args
- * @returns {Promise<{ payload: object, ok: boolean }>}
- */
-export async function handle(args) {
+export async function handle(args: ToolArgs): Promise<ToolOutcome<ReadFilePayload>> {
   const target = resolvePath(args.path, { mustBeDir: false });
 
   const stat = statSync(target, { throwIfNoEntry: false });
@@ -56,17 +61,18 @@ export async function handle(args) {
   }
 
   let limit = MAX_FILE_BYTES;
-  if (args.max_bytes !== undefined && args.max_bytes !== null) {
-    if (!Number.isInteger(args.max_bytes)) {
-      throw new Refused(`\`max_bytes\` must be an integer, got ${JSON.stringify(args.max_bytes)}.`);
+  const maxBytes = args.max_bytes;
+  if (maxBytes !== undefined && maxBytes !== null) {
+    if (typeof maxBytes !== "number" || !Number.isInteger(maxBytes)) {
+      throw new Refused(`\`max_bytes\` must be an integer, got ${JSON.stringify(maxBytes)}.`);
     }
-    limit = Math.max(1, Math.min(args.max_bytes, MAX_FILE_BYTES));
+    limit = Math.max(1, Math.min(maxBytes, MAX_FILE_BYTES));
   }
 
   // One byte past the limit is how a file of exactly `limit` bytes is told from a longer one.
   const buffer = Buffer.alloc(limit + 1);
   const file = await open(target, "r");
-  let bytesRead;
+  let bytesRead: number;
   try {
     ({ bytesRead } = await file.read(buffer, 0, limit + 1, 0));
   } finally {

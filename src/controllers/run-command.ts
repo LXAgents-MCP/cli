@@ -2,13 +2,25 @@
 import { z } from "zod";
 import { MAX_TIMEOUT } from "../config/config.js";
 import { clampTimeout } from "../models/args.js";
+import type { ToolArgs, ToolDefinition, ToolOutcome } from "../models/tool.js";
 import { checkAllowlist } from "../services/allowlist.js";
 import { resolvePath } from "../services/paths.js";
 import { run } from "../services/process.js";
 import { Refused } from "../utils/errors.js";
 import { decode, truncate } from "../utils/text.js";
 
-export const TOOL = {
+export type RunCommandPayload = {
+  summary: string;
+  exit_code: number;
+  stdout: string;
+  stderr: string;
+  duration_ms: number;
+  truncated: boolean;
+  timed_out: boolean;
+  cwd: string;
+};
+
+export const TOOL: ToolDefinition = {
   name: "run_command",
   description:
     "Run a command on the host machine and return its exit code, stdout, stderr, and " +
@@ -56,11 +68,7 @@ export const TOOL = {
   },
 };
 
-/**
- * @param {{ path?: unknown, cmd?: unknown, timeout?: unknown }} args
- * @returns {Promise<{ payload: object, ok: boolean }>}
- */
-export async function handle(args) {
+export async function handle(args: ToolArgs): Promise<ToolOutcome<RunCommandPayload>> {
   const cwd = resolvePath(args.path);
   const command = args.cmd;
 
@@ -80,7 +88,7 @@ export async function handle(args) {
   const [stdout, cutOut] = truncate(decode(result.stdout));
   const [stderr, cutErr] = truncate(decode(result.stderr));
 
-  let summary;
+  let summary: string;
   if (result.timedOut) {
     summary =
       `Timed out after ${timeout.toFixed(0)}s and was killed (exit ${result.exitCode}). ` +

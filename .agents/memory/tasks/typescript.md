@@ -58,3 +58,27 @@ depends on this one.
 
 Landed: this record and its row in `memory-index.md`. Nothing outside `.agents/` changes. The `PR`
 column is filled by the release task.
+
+### Task 2 — refactor/typescript
+
+Landed. Dependencies: `@modelcontextprotocol/sdk` 1.32.2 and `zod` 4.6.7 (both latest); devDependencies
+`typescript` 7.0.2, `@types/node` 26.6.6 and `tsx` 4.23.15. `npm audit fix` cleared the 5 findings
+(`body-parser`, `fast-uri`, `ip-address`, `qs` through the SDK, and `zod` itself); `npm audit` now
+reports 0. No Express import exists in `src/`, so `@types/express` is not added.
+
+Every `.js` file in `src/` and `test/` moved to `.ts` with `git mv`. The JSDoc types became TypeScript
+types: `Config`, `Options`, `ResolveOptions`, `RunResult`, and in the new `src/models/tool.ts` (types
+only) `ToolDefinition`, `ToolArgs`, `ToolPayload`, `ToolOutcome`, `ToolModule` and `ToolSpec`. Each tool
+names its payload (`ListDirectoryPayload`, `ReadFilePayload`, `RunCommandPayload`), and the server returns
+the SDK's `CallToolResult`. Two lines changed shape without changing behaviour: discovery accepts `.ts`
+as well as `.js` (D3), and `read_file` narrows `max_bytes` with `typeof` before `Number.isInteger`,
+which already returned false for a non-number. The usage line names `node dist/index.js`.
+
+`tsconfig.json` and `tsconfig.test.json` as in D1 and D4, `dist/` ignored. `package.json` has `main`
+`dist/index.js` and the scripts `build`, `typecheck`, `prepare`, `start`, `pretest`, `test` and
+`inspect`; there is no `bin` to move.
+
+Checked: `npm run build` and `npm run typecheck` report no error. `npm test` runs 57 passing and none
+failing, the same as before, with the stdio suite against `dist/index.js`. `npm audit`: 0.
+
+Left for task 3: `README.md` still points clients at `src/index.js` and says nothing of the build.

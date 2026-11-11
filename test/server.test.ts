@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "../src/config/config.js";
 import { createServer, toolResult } from "../src/routes/server.js";
 import { get } from "../src/controllers/index.js";
 import { SERVER_NAME, VERSION } from "../src/config/version.js";
 
 /** A client connected to a fresh server over an in-memory pipe. */
-async function connect(t) {
+async function connect(t: TestContext): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test", version: "0.0.0" });
   const server = createServer();
@@ -23,44 +24,51 @@ async function connect(t) {
   return client;
 }
 
-function scratch(t) {
+function scratch(t: TestContext): string {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "cli-test-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
-const text = (result) => {
-  assert.equal(result.content.length, 1, "expected exactly one content block");
-  assert.equal(result.content[0].type, "text");
-  return result.content[0].text;
+/** The single text block of a result, which is what the model reads. */
+const text = (result: unknown): string => {
+  const { content } = result as CallToolResult;
+  assert.equal(content.length, 1, "expected exactly one content block");
+  const [block] = content;
+  assert.ok(block !== undefined && block.type === "text", "expected a text block");
+  return block.text;
 };
+
+/** The structured content of a result, read as plain fields. */
+const fields = (result: unknown): Record<string, any> =>
+  (result as CallToolResult).structuredContent as Record<string, any>;
 
 test("the server identifies itself", async (t) => {
   const client = await connect(t);
 
   assert.deepEqual(client.getServerVersion(), { name: SERVER_NAME, version: VERSION });
-  assert.deepEqual(Object.keys(client.getServerCapabilities()), ["tools"]);
+  assert.deepEqual(Object.keys(client.getServerCapabilities() ?? {}), ["tools"]);
 });
 
 test("tools/list advertises the three tools with their schemas and hints", async (t) => {
   const client = await connect(t);
   const { tools } = await client.listTools();
-  const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
+  const byName: Record<string, Tool> = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
 
   assert.deepEqual(Object.keys(byName).sort(), ["list_directory", "read_file", "run_command"]);
 
-  assert.deepEqual(byName.run_command.inputSchema.required.sort(), ["cmd", "path"]);
-  assert.deepEqual(byName.read_file.inputSchema.required, ["path"]);
-  assert.deepEqual(byName.list_directory.inputSchema.required, ["path"]);
+  assert.deepEqual(byName.run_command?.inputSchema.required?.sort(), ["cmd", "path"]);
+  assert.deepEqual(byName.read_file?.inputSchema.required, ["path"]);
+  assert.deepEqual(byName.list_directory?.inputSchema.required, ["path"]);
 
-  assert.equal(byName.read_file.annotations.readOnlyHint, true);
-  assert.equal(byName.list_directory.annotations.readOnlyHint, true);
-  assert.equal(byName.run_command.annotations.destructiveHint, true);
-  assert.equal(byName.run_command.annotations.openWorldHint, true);
+  assert.equal(byName.read_file?.annotations?.readOnlyHint, true);
+  assert.equal(byName.list_directory?.annotations?.readOnlyHint, true);
+  assert.equal(byName.run_command?.annotations?.destructiveHint, true);
+  assert.equal(byName.run_command?.annotations?.openWorldHint, true);
 
   for (const tool of tools) {
-    assert.equal(tool.outputSchema.type, "object", `${tool.name} has no output schema`);
-    assert.ok(tool.description.length > 20);
+    assert.equal(tool.outputSchema?.type, "object", `${tool.name} has no output schema`);
+    assert.ok((tool.description ?? "").length > 20);
   }
 });
 
@@ -74,7 +82,7 @@ test("list_directory over the protocol renders entries and structured content", 
 
   assert.equal(result.isError, false);
   assert.match(text(result), /^\*\*2 entries in .+\.\*\*\n\n- `sub`\/\n- `a\.txt` {2}\(3 bytes\)$/);
-  assert.deepEqual(result.structuredContent.entries.map((e) => e.name), ["sub", "a.txt"]);
+  assert.deepEqual(fields(result).entries.map((e: { name: string }) => e.name), ["sub", "a.txt"]);
 });
 
 test("read_file over the protocol renders the content in a fenced block", async (t) => {
@@ -86,7 +94,7 @@ test("read_file over the protocol renders the content in a fenced block", async 
 
   assert.equal(result.isError, false);
   assert.match(text(result), /```text\nhello\n```/);
-  assert.equal(result.structuredContent.bytes_read, 5);
+  assert.equal(fields(result).bytes_read, 5);
 });
 
 test("run_command over the protocol renders both streams", async (t) => {
@@ -101,7 +109,7 @@ test("run_command over the protocol renders both streams", async (t) => {
 
   assert.equal(result.isError, false);
   assert.match(text(result), /^\*\*Exited 0 in \d+ms\.\*\*\n\n```\nout\n\n```\n\n\*\*stderr\*\*\n\n```\nerr\n\n```\n$/);
-  assert.equal(result.structuredContent.exit_code, 0);
+  assert.equal(fields(result).exit_code, 0);
 });
 
 test("a failing command is an error result that still carries its output", async (t) => {
@@ -117,7 +125,7 @@ test("a failing command is an error result that still carries its output", async
   });
 
   assert.equal(result.isError, true);
-  assert.equal(result.structuredContent.exit_code, 2);
+  assert.equal(fields(result).exit_code, 2);
   assert.match(text(result), /^\*\*Exited 2 in \d+ms\.\*\*/);
 });
 
@@ -176,6 +184,7 @@ test("a handler that crashes is reported as an internal error and the server car
   const client = await connect(t);
   const dir = scratch(t);
   const spec = get("list_directory");
+  assert.ok(spec !== undefined, "list_directory is registered");
   const original = spec.handle;
   spec.handle = async () => {
     throw new TypeError("boom");
@@ -190,7 +199,7 @@ test("a handler that crashes is reported as an internal error and the server car
   assert.equal(result.isError, true);
   assert.equal(result.structuredContent, undefined);
   assert.equal(text(result), "**Internal Error**\n\nTypeError: boom");
-  assert.match(written.mock.calls[0].arguments[0], /^Handler crashed:\nTypeError: boom/);
+  assert.match(String(written.mock.calls[0]?.arguments[0]), /^Handler crashed:\nTypeError: boom/);
 
   spec.handle = original;
   const after = await client.callTool({ name: "list_directory", arguments: { path: dir } });
@@ -199,17 +208,17 @@ test("a handler that crashes is reported as an internal error and the server car
 
 test("toolResult renders each payload shape", () => {
   assert.equal(
-    toolResult({ summary: "S", stdout: "", stderr: "" }, true).content[0].text,
+    text(toolResult({ summary: "S", stdout: "", stderr: "" }, true)),
     "**S**\n\n_(no output)_\n",
   );
   assert.equal(
-    toolResult({ summary: "S", entries: [] }, true).content[0].text,
+    text(toolResult({ summary: "S", entries: [] }, true)),
     "**S**\n\n_(empty)_",
   );
-  assert.equal(toolResult({ summary: "S" }, true).content[0].text, "**S**");
+  assert.equal(text(toolResult({ summary: "S" }, true)), "**S**");
   assert.equal(
-    toolResult({ summary: "Boom" }, false, "why").content[0].text,
+    text(toolResult({ summary: "Boom" }, false, "why")),
     "**Boom**\n\nwhy",
   );
-  assert.equal(toolResult({}, false, "why").content[0].text, "**Refused**\n\nwhy");
+  assert.equal(text(toolResult({}, false, "why")), "**Refused**\n\nwhy");
 });

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { MAX_OUTPUT, MAX_TIMEOUT, config } from "../src/config/config.js";
 import { clampTimeout } from "../src/models/args.js";
 import { checkAllowlist, firstToken } from "../src/services/allowlist.js";
@@ -11,21 +11,21 @@ import { Refused } from "../src/utils/errors.js";
 import { decode, truncate } from "../src/utils/text.js";
 
 /** A real, symlink-free scratch directory that is removed when the test ends. */
-function scratch(t) {
+function scratch(t: TestContext): string {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "cli-test-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
 /** Restore the settings a test changed, whatever the test did. */
-function resetConfig(t) {
+function resetConfig(t: TestContext): void {
   const saved = { ...config };
   t.after(() => Object.assign(config, saved));
 }
 
 test("resolvePath refuses a missing, empty or non-string path", () => {
   for (const raw of [undefined, null, "", "   "]) {
-    assert.throws(() => resolvePath(raw), (e) => e instanceof Refused && /is required/.test(e.message));
+    assert.throws(() => resolvePath(raw), (e: unknown) => e instanceof Refused && /is required/.test(e.message));
   }
   assert.throws(() => resolvePath(5), /must be a string, got number/);
 });
@@ -74,7 +74,7 @@ test("confinement refuses traversal, a sibling that shares the prefix, and a pat
   ]) {
     assert.throws(
       () => resolvePath(raw, { mustBeDir: false }),
-      (e) => e instanceof Refused && /outside the allowed root/.test(e.message),
+      (e: unknown) => e instanceof Refused && /outside the allowed root/.test(e.message),
       raw,
     );
   }
@@ -105,7 +105,7 @@ test("firstToken reads the executable the way the allowlist needs it", () => {
     ['"unterminated', "unterminated"],
     ["", ""],
   ];
-  for (const [command, expected] of cases) assert.equal(firstToken(command), expected, command);
+  for (const [command, expected] of cases as [string, string][]) assert.equal(firstToken(command), expected, command);
 });
 
 test("checkAllowlist is off when empty and narrows when populated", (t) => {
@@ -118,7 +118,7 @@ test("checkAllowlist is off when empty and narrows when populated", (t) => {
   checkAllowlist("git status");
   assert.throws(
     () => checkAllowlist("python main.py"),
-    (e) =>
+    (e: unknown) =>
       e instanceof Refused &&
       e.message === "`cmd` starts with 'python', which is not in the allowlist. Allowed: git, npm.",
   );

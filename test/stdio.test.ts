@@ -4,26 +4,30 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 /*
  * The server as a client actually runs it: a real process, spoken to over a real pipe. The
  * things that go wrong here - a stray write to stdout, a flag that never reaches the handlers,
  * a process that outlives its client - do not reproduce on an in-memory transport.
+ *
+ * It runs the compiled entry, `dist/index.js`, because that is what a client starts. `npm test`
+ * builds it first.
  */
 
-const ENTRY = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "index.js");
+const ENTRY: string = join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "index.js");
 
-function scratch(t) {
+function scratch(t: TestContext): string {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "cli-test-")));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
-/** A client attached to `node src/index.js <args>` over stdio. */
-async function connect(t, args = []) {
+/** A client attached to `node dist/index.js <args>` over stdio. */
+async function connect(t: TestContext, args: string[] = []): Promise<Client> {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [ENTRY, ...args],
@@ -35,7 +39,15 @@ async function connect(t, args = []) {
   return client;
 }
 
-const text = (result) => result.content[0].text;
+/** The first block of a result, which is its text. */
+const text = (result: unknown): string => {
+  const [block] = (result as CallToolResult).content;
+  return block?.type === "text" ? block.text : "";
+};
+
+/** The structured content of a result, read as plain fields. */
+const fields = (result: unknown): Record<string, any> =>
+  (result as CallToolResult).structuredContent as Record<string, any>;
 
 test("over stdio the server lists its tools and answers a call", async (t) => {
   const client = await connect(t);
@@ -47,7 +59,7 @@ test("over stdio the server lists its tools and answers a call", async (t) => {
 
   assert.deepEqual(tools.map((tool) => tool.name).sort(), ["list_directory", "read_file", "run_command"]);
   assert.equal(result.isError, false);
-  assert.deepEqual(result.structuredContent.entries.map((e) => e.name), ["a.txt"]);
+  assert.deepEqual(fields(result).entries.map((e: { name: string }) => e.name), ["a.txt"]);
 });
 
 test("--confine reaches the handlers", async (t) => {
@@ -88,7 +100,7 @@ test("--timeout becomes the default for a call that names none", async (t) => {
   });
 
   assert.equal(result.isError, true);
-  assert.equal(result.structuredContent.timed_out, true);
+  assert.equal(fields(result).timed_out, true);
 });
 
 test("a bad command line exits 2 with the reason on stderr and nothing on stdout", () => {
@@ -97,7 +109,7 @@ test("a bad command line exits 2 with the reason on stderr and nothing on stdout
 
     assert.equal(run.status, 2, args.join(" "));
     assert.equal(run.stdout, "", `${args.join(" ")} wrote to stdout`);
-    assert.match(run.stderr, /Usage: node src\/index\.js/);
+    assert.match(run.stderr, /Usage: node dist\/index\.js/);
   }
 });
 
@@ -111,13 +123,13 @@ test("--help prints the usage to stderr, leaves stdout empty and exits 0", () =>
 
 test("the process exits by itself when its client goes away", async () => {
   const child = spawn(process.execPath, [ENTRY], { stdio: ["pipe", "pipe", "ignore"] });
-  const exited = new Promise((resolve) => child.on("exit", (code) => resolve(code)));
+  const exited = new Promise<number | null>((resolve) => child.on("exit", (code) => resolve(code)));
 
   child.stdin.end();
 
   const code = await Promise.race([
     exited,
-    new Promise((resolve) => setTimeout(() => resolve("still running"), 5000)),
+    new Promise<"still running">((resolve) => setTimeout(() => resolve("still running"), 5000)),
   ]);
   if (code === "still running") child.kill("SIGKILL");
   assert.equal(code, 0);
