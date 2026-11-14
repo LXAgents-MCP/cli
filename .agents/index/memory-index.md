@@ -18,3 +18,4 @@ Every memory file is registered here in the same commit that creates it.
 | [`../memory/tasks/forge-servers.md`](../memory/tasks/forge-servers.md) | Removing those tools again, now that `lxagents-github` and `lxagents-gitlab` serve them; released as 3.0.0. |
 | [`../memory/tasks/code-structure.md`](../memory/tasks/code-structure.md) | Giving `src/` the same layout as `github` and `gitlab`, one job per file, with no change a client can see; released as 3.0.1. |
 | [`../memory/tasks/typescript.md`](../memory/tasks/typescript.md) | Moving the server to strict TypeScript compiled to `dist/`, with dependencies at their latest and a clean audit; released as 4.0.0. |
+| [`../memory/tasks/rust.md`](../memory/tasks/rust.md) | Rewriting the server in Rust on the official MCP Rust SDK (`rmcp`), still stdio only, with the same tools, flags and limits. |
