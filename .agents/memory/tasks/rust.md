@@ -102,3 +102,13 @@ compared as JSON (the fixture is `tests/fixtures/tools-list.json`, without the S
 field, which rmcp does not have).
 
 Left for task 3: `README.md` still describes Node, `npm install` and `dist/index.js`.
+
+### Task 3 — docs/rust
+
+Landed. `README.md` asks for Rust 1.89+ instead of Node, builds with `cargo build --release` (or
+`cargo install --path .`), points both client examples' `command` at the binary with no `args` entry
+for the script, lists the `cargo` build, test, clippy and fmt commands and the Inspector line, names
+the `.rs` files in the folder table (with `config/settings.rs`), says how a tool is added, and gains a
+"Moving from 4.x" section; "Moving from 3.x" and "Moving from the Python version" now point at it.
+Released changelogs and earlier task records keep `dist/index.js` and `src/index.js`: they describe
+the tree as it was.

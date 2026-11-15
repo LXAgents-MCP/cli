@@ -15,7 +15,7 @@ This server provides the following core tools to the LLM:
 
 **Repository tools moved.** `create_github_repo` and `create_gitlab_repo`, added in 2.1.0, are gone as of 3.0.0. GitHub and GitLab each have their own server now, [`lxagents-github`](https://github.com/LXAgents-MCP/github) and [`lxagents-gitlab`](https://github.com/LXAgents-MCP/gitlab), whose `repo_create` takes the same arguments and is one of 45 tools each. This server makes no network request.
 
-*Note: Tools are dynamically discovered from the `src/controllers/` directory. You can add a tool by creating a new TypeScript file there that exports `TOOL` (its name, description and schemas) and `handle(args)`, typed by `src/models/tool.ts`.*
+*Note: Each tool is one Rust module in `src/controllers/`, named after the tool, exposing `spec()` (its definition and handler, typed by `src/models/tool.rs`). To add a tool, add the file and list its `spec` in `MODULES` in `src/controllers/mod.rs`; a test fails if a file there is left out.*
 
 ## Security & Confinement
 
@@ -27,18 +27,20 @@ Because this server allows shell execution, it runs exactly what the LLM tells i
 
 ## Installation
 
-Requires [Node.js](https://nodejs.org/) 20 or newer.
+Requires a [Rust toolchain](https://rustup.rs/) 1.89 or newer. Nothing else is needed at run time: the server is a single native binary.
 
 1. Clone this repository to your local machine:
    ```bash
    git clone https://github.com/LXAgents-MCP/cli
    cd cli
    ```
-2. Install the dependencies. This also compiles the TypeScript sources into `dist/`:
+2. Build the release binary:
    ```bash
-   npm install
+   cargo build --release
    ```
-   After pulling a change, run `npm run build` (or `npm install` again) to recompile.
+   It is written to `target/release/lxagents-cli` (`lxagents-cli.exe` on Windows). After pulling a change, run `cargo build --release` again.
+
+   Alternatively, `cargo install --path .` copies it to `~/.cargo/bin`, which is usually on your `PATH`.
 
 ## Configuration (Claude Desktop)
 
@@ -48,16 +50,13 @@ To use this server with Claude Desktop, add it to your `claude_desktop_config.js
 * **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 * **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Add the following configuration, replacing the absolute path with the actual location of `dist/index.js` on your machine:
+Add the following configuration, replacing the absolute path with the actual location of the binary on your machine:
 
 ```json
 {
   "mcpServers": {
     "host-cli": {
-      "command": "node",
-      "args": [
-        "C:/Absolute/Path/To/Your/Project/cli/dist/index.js"
-      ]
+      "command": "C:/Absolute/Path/To/Your/Project/cli/target/release/lxagents-cli.exe"
     }
   }
 }
@@ -71,9 +70,8 @@ If you want to sandbox the CLI tools to a specific workspace and allow only spec
 {
   "mcpServers": {
     "host-cli": {
-      "command": "node",
+      "command": "C:/Absolute/Path/To/Your/Project/cli/target/release/lxagents-cli.exe",
       "args": [
-        "C:/Absolute/Path/To/Your/Project/cli/dist/index.js",
         "--confine", "C:/Projects/SafeWorkspace",
         "--allow", "node,npm,git"
       ]
@@ -91,37 +89,41 @@ After updating the configuration, **restart Claude Desktop**. You should now see
 
 ## Development
 
-The server is written in TypeScript (`strict`) under `src/` and compiled to `dist/`, which git ignores.
+The server is written in Rust on the official MCP Rust SDK, [`rmcp`](https://github.com/modelcontextprotocol/rust-sdk). It is a library (`src/lib.rs`) and a thin binary (`src/main.rs`), so the tests can build a server in-process.
 
 ```bash
-npm run build     # compile src/ to dist/ with tsc
-npm run typecheck # type-check src/ and test/ without emitting
-npm test          # build, type-check, then the whole suite
-npm start         # run the compiled server over stdio
-npm run inspect   # drive the server by hand with the MCP Inspector
+cargo build --release                       # build target/release/lxagents-cli
+cargo test                                  # unit, protocol and stdio tests
+cargo clippy --all-targets -- -D warnings   # lint
+cargo fmt --check                           # formatting
+npx @modelcontextprotocol/inspector target/release/lxagents-cli   # drive it by hand
 ```
 
-The tests run from source through `tsx`, except the stdio suite, which starts `dist/index.js` the way a client does.
+The unit tests sit beside the code they test. `tests/server.rs` speaks MCP to a server over an in-memory pipe, and `tests/stdio.rs` starts the built binary the way a client does. `tests/fixtures/tools-list.json` pins the advertised tool surface.
 
-Nothing in `src/` may write to stdout: on stdio, stdout is the protocol channel. Diagnostics go to stderr.
+Nothing in the crate may write to stdout: on stdio, stdout is the protocol channel. Diagnostics go to stderr. `unsafe` code is forbidden.
 
 `src/` keeps one job per file, in the same folders as `lxagents-github` and `lxagents-gitlab`. A folder
-imports only from the folders below it in this table:
+uses only the folders below it in this table:
 
 | Folder | Holds |
 |---|---|
-| `src/index.ts` | The entry: reads the command line, applies it to `config`, serves stdio. |
-| `src/routes/` | `server.ts`: the MCP server and tool dispatch. |
-| `src/controllers/` | One module per tool (`TOOL` and `handle`), and the registry that discovers them. |
-| `src/services/` | `paths.ts` (where a tool may act, `--confine`), `allowlist.ts` (`--allow`), `process.ts` (running a command and killing its tree). |
-| `src/models/` | `args.ts` (reading the `timeout` argument), `tool.ts` (the types every tool module shares). |
-| `src/utils/` | `errors.ts`, `log.ts`, `render.ts` (the text the model reads), `text.ts` (decoding and truncation). |
-| `src/config/` | `config.ts` (limits and the settings the flags change), `options.ts` (parsing the flags), `version.ts`. |
+| `src/main.rs` | The entry: reads the command line, builds the settings, serves stdio. |
+| `src/routes/` | `server.rs`: the MCP server (`HostCli`) and tool dispatch. |
+| `src/controllers/` | One module per tool (`spec`, `definition`, `handle`), and the registry in `mod.rs`. |
+| `src/services/` | `paths.rs` (where a tool may act, `--confine`), `allowlist.rs` (`--allow`), `process.rs` (running a command and killing its tree). |
+| `src/models/` | `args.rs` (reading typed arguments and the `timeout`), `tool.rs` (the types every tool module shares). |
+| `src/utils/` | `errors.rs`, `log.rs`, `render.rs` (the text the model reads), `text.rs` (decoding and truncation). |
+| `src/config/` | `settings.rs` (limits and the settings the flags change), `options.rs` (parsing the flags), `version.rs`. |
+
+## Moving from 4.x
+
+5.0.0 rewrote the server in Rust. Run `cargo build --release` once, then change the client configuration: `command` becomes the path to `target/release/lxagents-cli`, and `dist/index.js` comes out of `args` (keep any `--confine`, `--allow` or `--timeout` flags there). Restart the client. Node is no longer needed. The tools, schemas, flags and limits are unchanged; a wrong argument type is now refused with a sentence naming the argument instead of the SDK's input validation error.
 
 ## Moving from 3.x
 
-4.0.0 moved the server to TypeScript. Run `npm install` once so `dist/` is built, then change the path in `args` from `src/index.js` to `dist/index.js` and restart the client. The tools, flags and limits are unchanged.
+Follow "Moving from 4.x": the only difference is that `args` names `src/index.js` instead of `dist/index.js`. That entry comes out the same way.
 
 ## Moving from the Python version
 
-The server was rewritten in JavaScript with the same three tools, schemas, flags and limits. To switch, change `"command": "python"` to `"command": "node"` and point `args` at `dist/index.js` instead of `server.py`, then run `npm install` once. Two behaviours differ on purpose: a command's stdin is now closed instead of inherited from the server, and a timeout kills the whole process tree on macOS and Linux as well as on Windows.
+The server was rewritten in JavaScript, then TypeScript, then Rust, with the same three tools, schemas, flags and limits. To switch, build the binary as above and set `"command"` to its path instead of `"python"`, dropping `server.py` from `args`. Two behaviours differ on purpose: a command's stdin is now closed instead of inherited from the server, and a timeout kills the whole process tree on macOS and Linux as well as on Windows.
