@@ -1,0 +1,199 @@
+[
+  {
+    "name": "list_directory",
+    "description": "List what is in a directory on the host, with a type marker per entry. Use this to find out what exists before deciding what to run - it is cheaper than a command, and it does not execute anything. Read-only.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Directory to list. Required - there is no default. Absolute, or relative to the server's own working directory."
+        },
+        "include_hidden": {
+          "description": "Include dot-prefixed and hidden entries. Default false.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "size"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "entries",
+        "truncated"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read a text file from the host and return its contents. Use this instead of shelling out to `type` or `cat`: it handles Windows encodings and a byte cap, and it will not mangle a file the way a console pipe does. Read-only.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File to read. Required - there is no default. Absolute, or relative to the server's own working directory. Must be an existing file."
+        },
+        "max_bytes": {
+          "description": "Maximum bytes to read. Default and ceiling 200000.",
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "bytes_read": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "content",
+        "bytes_read",
+        "truncated"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "run_command",
+    "description": "Run a command on the host machine and return its exit code, stdout, stderr, and duration. Use this when work has to happen on the host - running scripts, invoking a build or test runner, or inspecting host state the sandbox cannot see. Any directory on the machine may be used. A command that outruns `timeout` has its whole process tree killed, and the server carries on serving.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Working directory. Required - there is no default. Absolute, or relative to the server's own working directory. A path that does not exist is refused."
+        },
+        "cmd": {
+          "type": "string",
+          "description": "The command line, run through the host shell (cmd.exe on Windows, /bin/sh elsewhere). Quote paths containing spaces. Example: 'node main.js --dry-run'."
+        },
+        "timeout": {
+          "description": "Seconds to wait. Defaults to the server's setting (30 unless it was started with --timeout), ceiling 600. A command that exceeds it is killed and reported as a timeout - the server stays up and keeps serving.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "path",
+        "cmd"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "exit_code": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "stdout": {
+          "type": "string"
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "timed_out": {
+          "type": "boolean"
+        },
+        "cwd": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "exit_code",
+        "stdout",
+        "stderr",
+        "timed_out",
+        "cwd"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

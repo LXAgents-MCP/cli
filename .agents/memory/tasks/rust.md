@@ -71,3 +71,34 @@ depends on this one.
 
 Landed: this record and its row in `memory-index.md`. Nothing outside `.agents/` changes. The `PR`
 column is filled by the release task.
+
+### Task 2 — refactor/rust
+
+Landed. The Node toolchain is gone: `package.json`, `package-lock.json`, `tsconfig.json`,
+`tsconfig.test.json`, every `.ts` file in `src/` and `test/`. In its place a Cargo crate
+`lxagents-cli` (still `4.0.0`; the release task bumps it), edition 2024, `rust-version` 1.89 (the
+highest among the resolved dependencies, `uuid` through rmcp), with `Cargo.lock` committed.
+Dependencies: `rmcp` 3.10.0 (`server`, `transport-io`), `tokio` 1.54.1, `serde_json` 1.0.154
+(`preserve_order`, so schema properties keep their order), `encoding_rs` 0.8.44, `dunce` 1.0.5, and on
+POSIX `nix` 0.31.3 (`signal`) for the process-group kill. Dev: `rmcp` with `client` and
+`transport-child-process`, `tempfile` 3.27.0. No `axum` (D1). `#![forbid(unsafe_code)]` holds in the
+library and the binary.
+
+Layout, one job per file, imports flowing downward: `main.rs`, `lib.rs`, `routes/server.rs`
+(`HostCli`, a hand-written `ServerHandler`), `controllers/{mod,list_directory,read_file,run_command}.rs`,
+`services/{paths,allowlist,process}.rs`, `models/{args,tool}.rs`, `utils/{errors,log,render,text}.rs`,
+`config/{settings,options,version}.rs`. `config/config.ts` became `config/settings.rs`: clippy refuses a
+module named like its parent, and `settings` is the name the template uses.
+
+Two fixes found by the ported tests: the kill takes the process id at spawn, because `Child::id` is
+gone once the shell is reaped while a background job still holds the pipe; and a client that closes
+stdin before the handshake ends the process with 0, as in 4.x. Responses may now arrive out of order,
+since rmcp serves requests concurrently; JSON-RPC matches them by id.
+
+Checked: `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` are clean. `cargo test`
+runs 66 tests, all passing: 48 unit tests in the modules, 10 protocol tests over an in-memory pipe and
+8 against the built binary over stdio. `tools/list` from the binary is identical to the 4.0.0 server's,
+compared as JSON (the fixture is `tests/fixtures/tools-list.json`, without the SDK-added `execution`
+field, which rmcp does not have).
+
+Left for task 3: `README.md` still describes Node, `npm install` and `dist/index.js`.
