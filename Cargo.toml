@@ -1,6 +1,6 @@
 [package]
 name = "lxagents-cli"
-version = "4.0.0"
+version = "5.0.0"
 edition = "2024"
 rust-version = "1.89"
 description = "MCP server that gives an LLM access to the host's command line and file system. Stdio only: it is loaded locally by the client and never served over a network."
