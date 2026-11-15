@@ -5,7 +5,7 @@ description: Rewriting the cli server from TypeScript to Rust on the official MC
 
 # Rust rewrite — cli
 
-## 2026-11-14 — in progress
+## 2026-11-14 — complete
 
 **Goal.** The owner asked for every repository to move from TypeScript to Rust, on the official MCP
 Rust SDK (`rmcp`, `modelcontextprotocol/rust-sdk`) with axum as the web framework. `cli` is the
@@ -25,7 +25,7 @@ host command-line server: three tools, stdio only, no network listener by design
   `cargo fmt --check` pass. The Node toolchain (`package.json`, lockfile, `tsconfig*.json`, `.ts`
   sources) is gone.
 
-**Status:** in progress.
+**Status:** complete. Released as `5.0.0`; the pull requests, merged in order by rebase, are in the table.
 
 **Detail.** A change of language, not of behaviour, except where Rust has no equivalent (D7, D8, D11,
 D12). The owner is away and asked for the recommended option wherever a question comes up; the
@@ -38,10 +38,10 @@ are this repository's own history and records. The full plan is
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/rust` | |
-| 2 | Rewrite in Rust | `refactor/rust` | |
-| 3 | Corrected documentation | `docs/rust` | |
-| 4 | Release | `release/5.0.0` | |
+| 1 | Task record | `plan/rust` | [#20](https://github.com/LXAgents-MCP/cli/pull/20) |
+| 2 | Rewrite in Rust | `refactor/rust` | [#21](https://github.com/LXAgents-MCP/cli/pull/21) |
+| 3 | Corrected documentation | `docs/rust` | [#22](https://github.com/LXAgents-MCP/cli/pull/22) |
+| 4 | Release | `release/5.0.0` | [#23](https://github.com/LXAgents-MCP/cli/pull/23) |
 
 Branches stacked: task 1 from `master`, task `k` from task `k-1`. No chain in another repository
 depends on this one.
