@@ -1,0 +1,27 @@
+[package]
+name = "lxagents-cli"
+version = "4.0.0"
+edition = "2024"
+rust-version = "1.89"
+description = "MCP server that gives an LLM access to the host's command line and file system. Stdio only: it is loaded locally by the client and never served over a network."
+repository = "https://github.com/LXAgents-MCP/cli"
+homepage = "https://github.com/LXAgents-MCP/cli#readme"
+keywords = ["mcp", "model-context-protocol", "cli", "lxagents"]
+publish = false
+
+[dependencies]
+dunce = "1.0.5"
+encoding_rs = "0.8.44"
+rmcp = { version = "3.10.0", default-features = false, features = ["server", "transport-io"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+tokio = { version = "1.54.1", features = ["fs", "io-std", "io-util", "macros", "process", "rt-multi-thread", "signal", "time"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.31.3", default-features = false, features = ["signal"] }
+
+[dev-dependencies]
+rmcp = { version = "3.10.0", default-features = false, features = ["client", "transport-child-process"] }
+tempfile = "3.27.0"
+
+[profile.release]
+strip = true

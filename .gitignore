@@ -1,9 +1,8 @@
 # Agents
 .agents/plans/
 
-# Node
-node_modules/
-npm-debug.log*
+# Rust
+target/
 
 # Environment
 .env
@@ -13,6 +12,3 @@ npm-debug.log*
 .DS_Store
 .vscode/
 .idea/
-
-# Build
-dist/
