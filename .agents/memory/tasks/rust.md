@@ -112,3 +112,9 @@ the `.rs` files in the folder table (with `config/settings.rs`), says how a tool
 "Moving from 4.x" section; "Moving from 3.x" and "Moving from the Python version" now point at it.
 Released changelogs and earlier task records keep `dist/index.js` and `src/index.js`: they describe
 the tree as it was.
+
+### Task 4 — release/5.0.0
+
+Landed. `Cargo.toml` and `Cargo.lock` are at `5.0.0`, the release log is `wiki/logs/5/0/0/CHANGELOG.md`
+and the logs index leads with its row. The closing commit fills the `PR` column and closes the
+record. No tag is made and nothing is published.
